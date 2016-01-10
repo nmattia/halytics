@@ -1,5 +1,4 @@
-module Analytics.Sample (
-  Sample
+module Halytics.Sample (
 ) where
 
 import qualified Statistics.Sample as S

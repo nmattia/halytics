@@ -15,5 +15,4 @@ library
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5,
                        statistics
-  other-modules:       Analytics.Sample,
-                       Analytics.Collector
+  exposed-modules:     Halytics.Collector
