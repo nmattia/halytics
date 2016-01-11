@@ -1,29 +1,33 @@
 {-# LANGUAGE RankNTypes #-}
 
-import Control.Monad (replicateM_, void, foldM_)
+import Control.Monad (replicateM_, void, foldM)
 import Server        (Server(..), slowSum, fastSum, request)
 import System.Random (randomRIO)
 
 import qualified Halytics.Collector as HC
 import qualified System.Clock  as Clk
 
-main :: IO ()
-main =
-  foldM_ (\c _ -> performARequest c) HC.empty [1 .. numberOfRequests]
-  where
-    numberOfRequests = 1000000
+type ServerID = Int
 
-performARequest :: HC.Collector Double -> IO (HC.Collector Double)
+main :: IO ()
+main = do
+  c <- foldM (\c _ -> performARequest c) HC.empty [1 .. numberOfRequests]
+  let sample = HC.toSample c [(==) 1, (==) 2, (==) 3]
+  mapM_ (putStrLn . show . HC.mean) sample
+  return ()
+  where
+    numberOfRequests = 10000
+
+performARequest :: HC.Collector ServerID -> IO (HC.Collector ServerID)
 performARequest collector = do
   (serverID, server) <- (servers !!) <$> randomRIO (0, numberOfServers - 1)
   input <- randomRIO (1000, 100000)
   (_result, us) <- measure $ request server input
-  putStrLn $ "Time was " ++ show us ++ " us"
-  return $ HC.notify collector us
+  return $ HC.notify collector serverID us
   where
     numberOfServers = length servers
 
-servers :: [(Int, Server)]
+servers :: [(ServerID, Server)]
 servers = zip [1 .. ] [slowServer, fastServer, slowServer]
   where fastServer = Server fastSum
         slowServer = Server slowSum

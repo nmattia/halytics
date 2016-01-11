@@ -1,6 +1,7 @@
 module Halytics.Collector
   ( Collector
   , empty
+  , mean
   , notify
   , toSample
   ) where
@@ -18,3 +19,6 @@ toSample (Collector es) = map (toValues . (`filterOnKey` es))
   where
     filterOnKey p = filter (p . fst)
     toValues = map snd
+
+mean :: [Double] -> Double
+mean xs = sum xs / fromIntegral (length xs)
