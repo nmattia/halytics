@@ -5,6 +5,7 @@ import Server        (Server(..), slowSum, fastSum, request)
 import System.Random (randomRIO)
 
 import qualified Halytics.Collector as HC
+import qualified Statistics.Sample as Stats
 import qualified System.Clock  as Clk
 
 type ServerID = Int
@@ -12,8 +13,8 @@ type ServerID = Int
 main :: IO ()
 main = do
   c <- foldM (\c _ -> performARequest c) HC.empty [1 .. numberOfRequests]
-  let sample = HC.toSample c [(==) 1, (==) 2, (==) 3]
-  mapM_ (putStrLn . show . HC.mean) sample
+  let sample = HC.toSamples c [(==) 1, (==) 2, (==) 3]
+  mapM_ (print . Stats.mean) sample
   return ()
   where
     numberOfRequests = 10000

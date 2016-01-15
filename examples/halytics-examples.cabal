@@ -18,4 +18,5 @@ executable halytics-examples
                        deepseq,
                        halytics,
                        halytics-examples,
-                       random
+                       random,
+                       statistics
