@@ -15,8 +15,8 @@ type ServerID = Int
 main :: IO ()
 main = do
   c <- foldM (\c _ -> performARequest c) HC.empty [1 .. numberOfRequests]
-  let sample = HC.toSamples c [(==) 1, (==) 2, (==) 3]
-  mapM_ reportMetrics sample
+  let samples = HC.toSamples_ c [(==) 1, (==) 2, (==) 3]
+  mapM_ reportMetrics samples
   return ()
   where
     numberOfRequests = 10000

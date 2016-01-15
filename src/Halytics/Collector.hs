@@ -5,6 +5,7 @@ module Halytics.Collector
   , mean
   , notify
   , toSamples
+  , toSamples_
   ) where
 
 import Control.Monad (foldM_)
@@ -22,8 +23,17 @@ empty = Collector []
 notify :: Collector k -> k -> Double -> Collector k
 notify (Collector es) k v = Collector ((k, v):es)
 
-toSamples :: Collector k -> [k -> Bool] -> [Sample]
-toSamples (Collector es) = map (toValues . (`filterOnKey` es))
+toSamples :: Collector k
+          -> (k -> Bool)
+          -> [k -> Bool]
+          -> (Collector k, [Sample])
+toSamples collector@(Collector es) feedbackPred preds = (collector', samples)
+  where
+    samples = toSamples_ collector preds
+    collector' = Collector $ filter (feedbackPred . fst) es
+
+toSamples_ :: Collector k -> [k -> Bool] -> [Sample]
+toSamples_ (Collector es) = map (toValues . (`filterOnKey` es))
   where
     filterOnKey p = filter (p . fst)
     toDoubles = map snd
