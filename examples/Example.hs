@@ -6,6 +6,7 @@ import Statistics.Sample (Sample)
 import System.Random (randomRIO)
 
 import qualified Halytics.Collector as HC
+import qualified Halytics.Report as HR
 import qualified Statistics.Sample as Stats
 import qualified Statistics.Quantile as Quant
 import qualified System.Clock  as Clk
@@ -16,26 +17,9 @@ main :: IO ()
 main = do
   c <- foldM (\c _ -> performARequest c) HC.empty [1 .. numberOfRequests]
   let samples = HC.toSamples_ c [(==) 1, (==) 2, (==) 3]
-  mapM_ reportMetrics samples
-  return ()
+  HR.report [HR.meanVariance, HR.median, HR.perc95, HR.perc99] samples
   where
     numberOfRequests = 10000
-
-reportMetrics :: Sample -> IO ()
-reportMetrics sample = do
-  putStrLn "---"
-  putStrLn $ "μ : " ++ show μ
-  putStrLn $ "σ : " ++ show σ
-  putStrLn $ "median : " ++ show median
-  putStrLn $ "95th percentile : " ++ show perc95
-  putStrLn $ "99th percentile : " ++ show perc99
-  putStrLn "---"
-  where
-    (μ, var) = Stats.meanVariance sample
-    σ = sqrt var
-    median = Quant.weightedAvg 1 2 sample
-    perc95 = Quant.weightedAvg 95 100 sample
-    perc99 = Quant.weightedAvg 99 100 sample
 
 performARequest :: HC.Collector ServerID -> IO (HC.Collector ServerID)
 performARequest collector = do

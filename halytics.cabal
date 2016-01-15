@@ -17,4 +17,5 @@ library
                        statistics,
                        vector
   exposed-modules:     Halytics.Collector
+                       Halytics.Report
   ghc-options: -O2 -Wall -fwarn-tabs -funbox-strict-fields
