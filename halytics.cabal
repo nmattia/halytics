@@ -18,4 +18,6 @@ library
                        vector
   exposed-modules:     Halytics.Collector
                        Halytics.Report
+                       Halytics.Internal
+                       Halytics.Monitor
   ghc-options: -O2 -Wall -fwarn-tabs -funbox-strict-fields

@@ -1,5 +1,3 @@
-{-# LANGUAGE RankNTypes #-}
-
 import Control.Monad (replicateM_, void, foldM)
 import Server        (Server(..), slowSum, fastSum, request)
 import Statistics.Sample (Sample)
@@ -23,7 +21,8 @@ main = do
 
 performARequest :: HC.Collector ServerID -> IO (HC.Collector ServerID)
 performARequest collector = do
-  (serverID, server) <- (servers !!) <$> randomRIO (0, numberOfServers - 1)
+  (serverID, server) <- let randomIndex = randomRIO (0, numberOfServers -1)
+                        in (servers !!) <$> randomIndex
   input <- randomRIO (1000, 100000)
   (_result, us) <- measure $ request server input
   return $ HC.notify collector serverID us
@@ -38,7 +37,7 @@ servers = zip [1 .. ] [slowServer, fastServer, slowServer]
 timeSpecAsMicroSecs :: Clk.TimeSpec -> Double
 timeSpecAsMicroSecs t = fromIntegral (Clk.timeSpecAsNanoSecs t)  / 1e3
 
-measure :: forall a . IO a -> IO (a, Double)
+measure :: IO a -> IO (a, Double)
 measure f = do
   was <- Clk.getTime Clk.Monotonic
   res <- f

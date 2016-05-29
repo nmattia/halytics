@@ -1,9 +1,19 @@
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE DataKinds #-}
+
 module Halytics.Report where
 
 import Statistics.Sample (Sample)
 
 import qualified Statistics.Sample as Stats
 import qualified Statistics.Quantile as Quant
+
+data Report :: [*] -> * where
+  Rep :: Report '[]
+
+data Result :: [*] -> * where
+  Res :: Result '[]
 
 mean :: Sample -> String
 mean sample = "μ : " ++ show (Stats.mean sample)
@@ -25,3 +35,6 @@ perc99 sample = "99th percentile : " ++ show (Quant.weightedAvg 99 100 sample)
 
 report :: [Sample -> String] -> [Sample] -> IO ()
 report fs = mapM_ (\s -> putStrLn . unlines $ map (\f -> f s) fs)
+
+report' :: Report '[String] -> Result '[String]
+report' = undefined
