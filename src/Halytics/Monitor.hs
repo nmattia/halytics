@@ -1,8 +1,10 @@
-{-# LANGUAGE DataKinds      #-}
-{-# LANGUAGE EmptyDataDecls #-}
-{-# LANGUAGE GADTs          #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE TypeOperators  #-}
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE EmptyDataDecls    #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs             #-}
+{-# LANGUAGE KindSignatures    #-}
+{-# LANGUAGE TypeOperators     #-}
+
 
 module Halytics.Monitor where
 
@@ -12,6 +14,15 @@ data Result a = Result Double
 
 class Resultable a where
   toValue :: [Double] -> Result a
+
+class Generate a where
+  generate :: Monitor a
+
+instance (Resultable a) => Generate '[a] where
+  generate = MNow []
+
+instance {-# OVERLAPPABLE #-} (Resultable a, Generate as) => Generate (a ': as) where
+  generate = MNext generate
 
 data Monitor :: [*] -> * where
   MNow :: (Resultable a) => [Double] -> Monitor '[a]
