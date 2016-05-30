@@ -1,13 +1,16 @@
-import Control.Monad (replicateM_, void, foldM)
-import Server        (Server(..), slowSum, fastSum, request)
-import Statistics.Sample (Sample)
-import System.Random (randomRIO)
+{-# LANGUAGE DataKinds #-}
 
-import qualified Halytics.Collector as HC
-import qualified Halytics.Report as HR
-import qualified Statistics.Sample as Stats
+import           Control.Monad       (foldM, replicateM_, void)
+import           Server              (Server (..), fastSum, request, slowSum)
+import           Statistics.Sample   (Sample)
+import           System.Random       (randomRIO)
+
+import qualified Halytics.Collector  as HC
+import qualified Halytics.Monitor    as HM
+import qualified Halytics.Report     as HR
 import qualified Statistics.Quantile as Quant
-import qualified System.Clock  as Clk
+import qualified Statistics.Sample   as Stats
+import qualified System.Clock        as Clk
 
 type ServerID = Int
 
@@ -16,6 +19,16 @@ main = do
   c <- foldM (\c _ -> performARequest c) HC.empty [1 .. numberOfRequests]
   let samples = HC.toSamples_ c [(==) 1, (==) 2, (==) 3]
   HR.report [HR.meanVariance, HR.median, HR.perc95, HR.perc99] samples
+
+
+
+  let m = HM.generate ::  HM.Monitor '[HM.Max, HM.Min, HM.Percentile 95]
+  let m' = HM.notify m 0.6
+  let m'' = HM.notify m' 20.5
+  let m''' = HM.notify m'' 10.4
+  print $ HM.toValues m'''
+  return ()
+
   where
     numberOfRequests = 10000
 
