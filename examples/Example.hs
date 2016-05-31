@@ -16,21 +16,31 @@ type ServerID = Int
 
 main :: IO ()
 main = do
+  putStrLn "   --- Old Collector --- "
   c <- foldM (\c _ -> performARequest c) HC.empty [1 .. numberOfRequests]
   let samples = HC.toSamples_ c [(==) 1, (==) 2, (==) 3]
   HR.report [HR.meanVariance, HR.median, HR.perc95, HR.perc99] samples
 
-
+  putStrLn "   --- Monitor --- "
 
   let m = HM.generate ::  HM.Monitor '[HM.Max, HM.Min, HM.Percentile 95]
-  let m' = HM.notify m 0.6
-  let m'' = HM.notify m' 20.5
-  let m''' = HM.notify m'' 10.4
-  print $ HM.toValues m'''
+  m' <- foldM (\mo _ -> performARequest' >>= \dt -> return $ HM.notify mo dt) m [1.. 100]
+  print $ HM.toValues m'
+
+  let m'' = HM.generate' :: HM.Monitor' '[(HM.Max, String)]
+      m''' = HM.notify' m'' 0.5
+      m'''' = HM.notify' m''' 12.3
+
   return ()
 
   where
     numberOfRequests = 10000
+
+performARequest' :: IO Double
+performARequest' = do
+  input <- randomRIO (1000, 100000)
+  (_result, us) <- measure $ request (Server slowSum) input
+  return us
 
 performARequest :: HC.Collector ServerID -> IO (HC.Collector ServerID)
 performARequest collector = do

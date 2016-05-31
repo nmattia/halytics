@@ -1,41 +1,38 @@
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE EmptyDataDecls    #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs             #-}
-{-# LANGUAGE KindSignatures    #-}
-{-# LANGUAGE TypeOperators     #-}
-{-# LANGUAGE ScopedTypeVariables     #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE EmptyDataDecls        #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeOperators         #-}
 
 module Halytics.Monitor where
 
-import GHC.TypeLits
 import Data.Proxy
+import GHC.TypeLits
 
-class Resultable a where
-  toValue :: [Double] -> Result a
+class Resultable a a' where
+  toValue :: [Double] -> Result a a'
 
 class Generate a where
   generate :: Monitor a
 
-instance (Resultable a) => Generate '[a] where
+instance (Resultable a r) => Generate '[(a, r)] where
   generate = MNow []
 
-instance {-# OVERLAPPABLE #-} (Resultable a, Generate as) => Generate (a ': as) where
+instance {-# OVERLAPPABLE #-} (Resultable a r, Generate as) => Generate ((a, r) ': as) where
   generate = MNext generate
 
 data Monitor :: [*] -> * where
-  MNow :: (Resultable a) => [Double] -> Monitor '[a]
-  MNext :: (Resultable a) => Monitor as -> Monitor (a ': as)
+  MNow :: (Resultable a a') => [Double] -> Monitor '[(a, a')]
+  MNext :: (Resultable a a') => Monitor as -> Monitor ((a, a') ': as)
 
-data Result a = Result Double deriving (Show)
+data Result a r = Result r deriving (Show)
 
 data Results :: [*] -> * where
-  RNow :: (Resultable a) => Result a -> Results '[a]
-  RNext :: (Resultable a) => Result a -> Results as -> Results (a ': as)
-
-instance Show (Results a) where
-  show (RNext r rs) = show r ++ show rs
-  show (RNow r) = show r
+  RNow :: (Resultable a r) => Result a r -> Results '[(a, r)]
+  RNext :: (Resultable a r) => Result a r -> Results as -> Results ((a, r) ': as)
 
 notify :: Monitor a -> Double -> Monitor a
 notify (MNow xs) x = MNow (x:xs)
@@ -53,19 +50,24 @@ samples (MNext m) = samples m
 
 data Max
 
-instance Resultable Max where
+instance Resultable Max String where
+  toValue xs = Result $ show res
+    where res = toValue xs :: Result Max Double
+
+instance Resultable Max Double where
   toValue = Result . maximum
 
-instance Resultable Min where
+data Min
+
+instance Resultable Min Double where
   toValue = Result . minimum
 
-data Min
 
 data Median
 
 data Percentile :: Nat -> *
 
 -- TODO: this is dummy
-instance (KnownNat n) => Resultable (Percentile n) where
+instance (KnownNat n, Num a) => Resultable (Percentile n) a where
   toValue _ = Result . fromIntegral $ natVal proxy
     where proxy = Proxy :: Proxy n
