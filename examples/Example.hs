@@ -13,6 +13,9 @@ import qualified Statistics.Sample   as Stats
 import qualified System.Clock        as Clk
 
 type ServerID = Int
+type Max = (HM.Max, Maybe Double)
+type Min = (HM.Min, Maybe Double)
+type Percentile n = (HM.Percentile n, Maybe Double)
 
 main :: IO ()
 main = do
@@ -23,15 +26,9 @@ main = do
 
   putStrLn "   --- Monitor --- "
 
-  let m = HM.generate ::  HM.Monitor '[HM.Max, HM.Min, HM.Percentile 95]
-  m' <- foldM (\mo _ -> performARequest' >>= \dt -> return $ HM.notify mo dt) m [1.. 100]
+  let m = HM.generate ::  HM.Monitor '[Max, Min, Percentile 95]
+  m' <- foldM (\mo _ -> HM.notify mo <$> performARequest') m [1.. 100]
   print $ HM.toValues m'
-
-  let m'' = HM.generate' :: HM.Monitor' '[(HM.Max, String)]
-      m''' = HM.notify' m'' 0.5
-      m'''' = HM.notify' m''' 12.3
-
-  return ()
 
   where
     numberOfRequests = 10000

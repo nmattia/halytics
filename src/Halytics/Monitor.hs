@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE FlexibleContexts        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -63,7 +64,7 @@ data Min
 instance Resultable Min (Maybe Double) where
   toValue = Result . minimumMay
 
-data Median
+type Median = Percentile 50
 
 data Percentile :: Nat -> *
 
@@ -73,3 +74,14 @@ instance (KnownNat n) => Resultable (Percentile n) (Maybe Double) where
           index = l * n `div` 100
           n = fromInteger $ natVal proxy :: Int
           l = length xs
+
+instance (KnownNat n) => Resultable (Percentile n) String where
+  toValue xs = Result $ show res
+    where res = toValue xs :: Result (Percentile n) (Maybe Double)
+
+instance Show (Results '[]) where
+  show _ = ""
+
+instance (Show r, Show (Results as)) => Show (Results ((a, r) ': as)) where
+  show (RNow (Result r)) = show r
+  show (RNext (Result r) rs) = show r ++ "\n" ++ show rs
