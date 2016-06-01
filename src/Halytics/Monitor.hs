@@ -11,6 +11,7 @@ module Halytics.Monitor where
 
 import Data.Proxy
 import GHC.TypeLits
+import Safe
 
 class Resultable a a' where
   toValue :: [Double] -> Result a a'
@@ -52,22 +53,23 @@ data Max
 
 instance Resultable Max String where
   toValue xs = Result $ show res
-    where res = toValue xs :: Result Max Double
+    where res = toValue xs :: Result Max (Maybe Double)
 
-instance Resultable Max Double where
-  toValue = Result . maximum
+instance Resultable Max (Maybe Double) where
+  toValue = Result . maximumMay
 
 data Min
 
-instance Resultable Min Double where
-  toValue = Result . minimum
-
+instance Resultable Min (Maybe Double) where
+  toValue = Result . minimumMay
 
 data Median
 
 data Percentile :: Nat -> *
 
--- TODO: this is dummy
-instance (KnownNat n, Num a) => Resultable (Percentile n) a where
-  toValue _ = Result . fromIntegral $ natVal proxy
+instance (KnownNat n) => Resultable (Percentile n) (Maybe Double) where
+  toValue xs = Result $ atMay xs index
     where proxy = Proxy :: Proxy n
+          index = l * n `div` 100
+          n = fromInteger $ natVal proxy :: Int
+          l = length xs
