@@ -15,23 +15,44 @@ import qualified System.Clock        as Clk
 type ServerID = Int
 type Max = (HM.Max, Maybe Double)
 type Min = (HM.Min, Maybe Double)
+
+type Max' = (HM.Max, String)
+type Min' = (HM.Min, String)
+
 type Percentile n = (HM.Percentile n, Maybe Double)
 
 main :: IO ()
 main = do
-  putStrLn "   --- Old Collector --- "
-  c <- foldM (\c _ -> performARequest c) HC.empty [1 .. numberOfRequests]
-  let samples = HC.toSamples_ c [(==) 1, (==) 2, (==) 3]
-  HR.report [HR.meanVariance, HR.median, HR.perc95, HR.perc99] samples
+    putStrLn "   --- Old Collector --- "
+    c <- foldM (\c _ -> performARequest c) HC.empty [1 .. numberOfRequests]
+    let samples = HC.toSamples_ c [(==) 1, (==) 2, (==) 3]
+    HR.report [HR.meanVariance, HR.median, HR.perc95, HR.perc99] samples
 
-  putStrLn "   --- Monitor --- "
+    putStrLn "   --- Monitor with Doubles --- "
+    doubleMonitor
 
-  let m = HM.generate ::  HM.Monitor '[Max, Min, Percentile 95]
-  m' <- foldM (\mo _ -> HM.notify mo <$> performARequest') m [1.. 100]
-  print $ HM.toValues m'
+    putStrLn "   --- Monitor with Strings --- "
+    stringMonitor
+
+    {-let m = HM.generate ::  HM.Monitor '[Max, Min, Percentile 95]-}
 
   where
     numberOfRequests = 10000
+
+doubleMonitor :: IO ()
+doubleMonitor = do
+    m' <- foldM (\mo _ -> HM.notify mo <$> performARequest') m [1.. 100]
+    print $ HM.toValues m'
+  where
+    m = HM.generate ::  HM.Monitor '[Max, Min, Percentile 95]
+
+stringMonitor :: IO ()
+stringMonitor = do
+    m' <- foldM (\mo _ -> HM.notify mo <$> performARequest') m [1.. 100]
+    print $ HM.toValues m'
+  where
+    m = HM.generate ::  HM.Monitor '[Min']
+
 
 performARequest' :: IO Double
 performARequest' = do

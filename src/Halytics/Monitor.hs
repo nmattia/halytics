@@ -64,6 +64,12 @@ data Min
 instance Resultable Min (Maybe Double) where
   toValue = Result . minimumMay
 
+instance Resultable Min String where
+  toValue xs = Result msg
+    where
+      msg = maybe "No minimum found" (\m' -> "Minimum: " ++ show m') m
+      (Result m) = toValue xs :: Result Min (Maybe Double)
+
 type Median = Percentile 50
 
 data Percentile :: Nat -> *
