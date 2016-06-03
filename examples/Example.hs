@@ -7,6 +7,7 @@ import           System.Random       (randomRIO)
 
 import qualified Halytics.Collector  as HC
 import qualified Halytics.Monitor    as HM
+import qualified Halytics.Monitor2   as HM2
 import qualified Halytics.Report     as HR
 import qualified Statistics.Quantile as Quant
 import qualified Statistics.Sample   as Stats
@@ -34,17 +35,8 @@ main = do
     putStrLn "   --- Monitor with Strings --- "
     stringMonitor
 
-    {-let m = HM.generate ::  HM.Monitor '[Max, Min, Percentile 95]-}
-
   where
     numberOfRequests = 10000
-
-doubleMonitor :: IO ()
-doubleMonitor = do
-    m' <- foldM (\mo _ -> HM.notify mo <$> performARequest') m [1.. 100]
-    print $ HM.toValues m'
-  where
-    m = HM.generate ::  HM.Monitor '[Max, Min, Percentile 95]
 
 stringMonitor :: IO ()
 stringMonitor = do
@@ -53,6 +45,13 @@ stringMonitor = do
   where
     m = HM.generate ::  HM.Monitor '[Min']
 
+doubleMonitor :: IO ()
+doubleMonitor = do
+    m' <- foldM (\mo _ -> HM2.notify mo <$> performARequest') m [1.. 100]
+    putStrLn $ HM2.toValue m'
+    putStrLn `HM2.simple` m'
+  where
+    m = HM2.generate ::  HM2.Monitor '[HM2.Percentile 95]
 
 performARequest' :: IO Double
 performARequest' = do

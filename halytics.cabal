@@ -21,4 +21,5 @@ library
                        Halytics.Report
                        Halytics.Internal
                        Halytics.Monitor
+                       Halytics.Monitor2
   ghc-options: -O2 -Wall -fwarn-tabs -funbox-strict-fields
