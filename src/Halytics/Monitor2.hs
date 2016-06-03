@@ -14,22 +14,33 @@ import Data.Proxy
 import GHC.TypeLits
 import Safe
 
-{-data Bundle a = Bundle (a -> IO ())-}
-
-{-(&:) :: Bundle a -> Bundle b -> IO ()-}
-{-(&:) (Bundle f) (Bundle g) = f undefined >> g undefined >> return ()-}
-
-{-data Bundle :: [*] -> * where-}
-  {-(:=>) :: Monitor as -> Bundle bs-}
-  {-(:&) :: Bundle (a ': as) -> (a -> IO ()) -> Bundle as-}
-
-simple :: (Resultable a b) => (b -> c) -> Monitor (a ': as) -> c
+simple :: (Resultable a b) => (b -> IO ()) -> Monitor '[a] -> IO ()
 simple f m = f $ toValue m
 
-{-lol :: IO ()-}
-{-lol = do-}
-  {-let m :: generate Monitor '[Min]-}
-  {-m :> -}
+more :: (Resultable a1 b)
+     => (b -> IO ())
+     -> Monitor (a1 ': a2 ': as)
+     -> (Monitor (a2 ': as), IO ())
+more f m@(MNext m') = (m', f $ toValue m)
+
+some :: (Resultable a b) => (b -> IO ()) -> Monitor(a ': as) -> IO ()
+some f m = f $ toValue m
+
+(%>) :: (Resultable a b) => IO (Monitor (a ': as)) -> (b -> IO ()) -> IO (Monitor as)
+(%>) iom f = iom >>= (\m@(MNext m') -> f (toValue m) >> return m')
+
+infixl 5 %>
+
+plug :: Monitor as -> IO (Monitor as)
+plug = return
+
+test :: IO (Monitor '[])
+test = plug m %> f1 %> f2 %> f3
+  where
+    m = generate :: Monitor '[Max, Max, Max]
+    f1 = const $ return () :: Maybe Double -> IO ()
+    f2 = const $ return () :: Maybe Double -> IO ()
+    f3 = const $ return () :: Maybe Double -> IO ()
 
 class Resultable a a' where
   toValue :: Monitor (a ': as) -> a'

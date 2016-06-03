@@ -50,6 +50,7 @@ doubleMonitor = do
     m' <- foldM (\mo _ -> HM2.notify mo <$> performARequest') m [1.. 100]
     putStrLn $ HM2.toValue m'
     putStrLn `HM2.simple` m'
+    {-(putStrLn `HM2.some` m')-}
   where
     m = HM2.generate ::  HM2.Monitor '[HM2.Percentile 95]
 
