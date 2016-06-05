@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE EmptyDataDecls        #-}
-{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE KindSignatures        #-}
@@ -14,19 +13,16 @@ import Data.Proxy
 import GHC.TypeLits
 import Safe
 
-simple :: (Resultable a b) => (b -> IO ()) -> Monitor '[a] -> IO ()
-simple f m = f $ toValue m
+{-class Updatable a b where-}
+  {-update :: Double -> b -> b-}
+  {-init :: b-}
 
-more :: (Resultable a1 b)
-     => (b -> IO ())
-     -> Monitor (a1 ': a2 ': as)
-     -> (Monitor (a2 ': as), IO ())
-more f m@(MNext m') = (m', f $ toValue m)
+{-instance Updatable Max (Maybe Double) where-}
+  {-update x (Just y) = Just $ max x y-}
+  {-update x Nothing = Just x-}
+  {-init = Nothing-}
 
-some :: (Resultable a b) => (b -> IO ()) -> Monitor(a ': as) -> IO ()
-some f m = f $ toValue m
-
-(%>) :: (Resultable a b) => IO (Monitor (a ': as)) -> (b -> IO ()) -> IO (Monitor as)
+(%>) :: (Resultable a b, Monad m) => m (Monitor (a ': as)) -> (b -> m ()) -> m (Monitor as)
 (%>) iom f = iom >>= (\m@(MNext m') -> f (toValue m) >> return m')
 
 infixl 5 %>
@@ -59,10 +55,6 @@ data Monitor :: [*] -> * where
   MNext :: Monitor as -> Monitor (a ': as)
 
 data Result a = Result deriving (Show)
-
-{-data Functions :: [*] -> * where-}
-  {-F :: (a -> b) -> Functions '[(a, b)]-}
-  {-Comp :: Functions '[(a, b)] -> Functions abs -> Functions ((a, b) ': abs)-}
 
 notify :: Monitor a -> Double -> Monitor a
 notify (MNow xs) x = MNow (x:xs)
