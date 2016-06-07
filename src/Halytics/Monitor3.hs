@@ -23,8 +23,8 @@ type family (++) (ls :: [*]) (rs :: [*]) :: [*] where
   (++) (l ': ls) rs = l ': (ls ++ rs)
 
 class Storable t where
-  update :: Double -> Monitor t -> Monitor t
-  generate :: Monitor t
+  update :: Monitor t -> Double -> Monitor t
+  monitor :: Monitor t
 
 data Monitor :: * -> * where
   Mon :: (Storable t) => S t -> Monitor t
@@ -32,14 +32,28 @@ data Monitor :: * -> * where
 data Monitors :: [*] -> * where
   MNow :: (Storable t) => Monitor t -> Monitors '[t]
   (:++) :: Monitors tl -> Monitors tr -> Monitors (tl ++ tr)
+  (:<) :: (Storable t) => Monitor t -> Monitors ts -> Monitors (t ': ts)
 
 values :: Monitor t -> S t
 values (Mon s) = s
 
 notify :: Monitors ts -> Double -> Monitors ts
 notify (MNow m) x = MNow m'
-  where m' = update x m
+  where m' = update m x
 notify (ls :++ rs) x = notify ls x :++ notify rs x
+notify (m :< ms) x = m' :< notify ms x
+  where m' = update m x
+
+-- Generation
+
+class Generate t where
+  generate :: Monitors t
+
+instance {-# OVERLAPPING #-} (Storable t) => Generate '[t] where
+  generate = MNow monitor
+
+instance (Storable t, Generate ts) => Generate (t ': ts) where
+  generate = monitor :< generate
 
 -- Instances
 
@@ -48,8 +62,8 @@ data Max
 type instance S Max = [Double]
 
 instance Storable Max where
-  update x (Mon xs) = Mon $ x:xs
-  generate = Mon []
+  update (Mon xs) x = Mon $ x:xs
+  monitor = Mon []
 
 instance Resultable Max (Maybe Double) where
   result m = maximumMay (values m)
@@ -59,4 +73,4 @@ instance Resultable Max String where
     where res = result m :: Maybe Double
 
 test :: Monitors '[Max, Max]
-test = MNow generate :++ MNow generate
+test = MNow monitor :++ MNow monitor

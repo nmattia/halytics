@@ -8,6 +8,7 @@ import           System.Random       (randomRIO)
 import qualified Halytics.Collector  as HC
 import qualified Halytics.Monitor    as HM
 import qualified Halytics.Monitor2   as HM2
+import qualified Halytics.Monitor3   as HM3
 import qualified Halytics.Report     as HR
 import qualified Statistics.Quantile as Quant
 import qualified Statistics.Sample   as Stats
@@ -23,18 +24,11 @@ type Min' = (HM.Min, String)
 type Percentile n = (HM.Percentile n, Maybe Double)
 
 main :: IO ()
-main = do
-    putStrLn "   --- Old Collector --- "
-    c <- foldM (\c _ -> performARequest c) HC.empty [1 .. numberOfRequests]
-    let samples = HC.toSamples_ c [(==) 1, (==) 2, (==) 3]
-    HR.report [HR.meanVariance, HR.median, HR.perc95, HR.perc99] samples
-
-    putStrLn "   --- Monitor with Doubles --- "
-    doubleMonitor
-
-    putStrLn "   --- Monitor with Strings --- "
-    stringMonitor
-
+main = flop
+    {-putStrLn "   --- Old Collector --- "-}
+    {-c <- foldM (\c _ -> performARequest c) HC.empty [1 .. numberOfRequests]-}
+    {-let samples = HC.toSamples_ c [(==) 1, (==) 2, (==) 3]-}
+    {-HR.report [HR.meanVariance, HR.median, HR.perc95, HR.perc99] samples-}
   where
     numberOfRequests = 10000
 
@@ -45,12 +39,21 @@ stringMonitor = do
   where
     m = HM.generate ::  HM.Monitor '[Min']
 
+flop :: IO ()
+flop = do
+    m' <- foldM (\mo _ -> HM3.update mo <$> performARequest') m [1.. 100]
+    putStrLn $ HM3.result m'
+
+    ms' <- foldM (\mo _ -> HM3.notify mo <$> performARequest') ms [1.. 100]
+    return ()
+  where
+    m = HM3.monitor :: HM3.Monitor HM3.Max
+    ms = HM3.generate :: HM3.Monitors '[HM3.Max]
+
 doubleMonitor :: IO ()
 doubleMonitor = do
     m' <- foldM (\mo _ -> HM2.notify mo <$> performARequest') m [1.. 100]
     putStrLn $ HM2.toValue m'
-    putStrLn `HM2.simple` m'
-    {-(putStrLn `HM2.some` m')-}
   where
     m = HM2.generate ::  HM2.Monitor '[HM2.Percentile 95]
 
