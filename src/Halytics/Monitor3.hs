@@ -11,6 +11,8 @@
 module Halytics.Monitor3 where
 
 import Safe
+import GHC.TypeLits
+import Data.Proxy
 
 class Resultable t r where
   result :: Monitor t -> r
@@ -31,7 +33,7 @@ data Monitor :: * -> * where
 
 data Monitors :: [*] -> * where
   MNow :: (Storable t) => Monitor t -> Monitors '[t]
-  (:++) :: Monitors tl -> Monitors tr -> Monitors (tl ++ tr)
+  {-(:++) :: Monitors tl -> Monitors tr -> Monitors (tl ++ tr)-}
   (:<) :: (Storable t) => Monitor t -> Monitors ts -> Monitors (t ': ts)
 
 values :: Monitor t -> S t
@@ -40,9 +42,20 @@ values (Mon s) = s
 notify :: Monitors ts -> Double -> Monitors ts
 notify (MNow m) x = MNow m'
   where m' = update m x
-notify (ls :++ rs) x = notify ls x :++ notify rs x
 notify (m :< ms) x = m' :< notify ms x
   where m' = update m x
+
+popResult :: (Resultable t r) => Monitors (t ': ts) -> (r, Monitors ts)
+popResult (MNow m) = (result m, undefined)
+popResult (m :< ms) = (result m, ms)
+
+pop :: Monitors (t ': ts) -> (Monitor t, Maybe (Monitors ts))
+pop (MNow m) = (m, Nothing)
+pop (m :< ms) = (m, Just ms)
+
+{-runAll :: Monitors ts -> IO ()-}
+{-popResult :: (Resultable)-}
+{-execute-}
 
 -- Generation
 
@@ -69,8 +82,34 @@ instance Resultable Max (Maybe Double) where
   result m = maximumMay (values m)
 
 instance Resultable Max String where
-  result m = show res
-    where res = result m :: Maybe Double
+  result m = maybe naught (\x -> "Max: " ++ show x) res
+    where
+      naught = "No maximum found"
+      res = result m :: Maybe Double
 
-test :: Monitors '[Max, Max]
-test = MNow monitor :++ MNow monitor
+
+data Percentile :: Nat -> *
+
+type instance S (Percentile n) = [Double]
+
+instance Storable (Percentile n) where
+  update (Mon xs) x = Mon $ x:xs
+  monitor = Mon []
+
+instance (KnownNat n) => Resultable (Percentile n) (Maybe Double) where
+  result m = xs `atMay` index
+    where
+      index = l * n `div` 100
+      n = fromInteger $ natVal proxy :: Int
+      l = length xs
+      proxy = Proxy :: Proxy n
+      xs = values m
+
+instance (KnownNat n) => Resultable (Percentile n) String where
+  result m = maybe naught f res
+    where
+      res = result m :: (Maybe Double)
+      naught = "No " ++ show n ++ "th percentile available"
+      f p = show n ++ "th percentile: " ++ show p
+      n = fromInteger $ natVal proxy :: Int
+      proxy = Proxy :: Proxy n
