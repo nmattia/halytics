@@ -42,13 +42,15 @@ flop = do
 
     ms' <- foldM (\mo _ -> HM3.notify mo <$> performARequest') ms [1.. 1000]
     let (m1, Just ms1) = HM3.pop ms'
-    let (m2, _) = HM3.pop ms1
+    let (m2, Just ms2) = HM3.pop ms1
+    let (m3, _) = HM3.pop ms2
     putStrLn $ HM3.result m1
     putStrLn $ HM3.result m2
+    putStrLn $ HM3.result m3
     return ()
   where
     m = HM3.monitor :: HM3.Monitor HM3.Max
-    ms = HM3.generate :: HM3.Monitors '[HM3.Max, HM3.Percentile 99]
+    ms = HM3.generate :: HM3.Monitors '[HM3.Max, HM3.Percentile 99, HM3.Last 5]
 
 doubleMonitor :: IO ()
 doubleMonitor = do
