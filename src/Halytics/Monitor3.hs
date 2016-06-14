@@ -19,44 +19,40 @@ import Safe
 class Resultable t r where
   result :: Monitor t -> r
 
-type family S a :: *
-
-type family (++) (ls :: [*]) (rs :: [*]) :: [*] where
-  (++) ls '[] = ls
-  (++) '[] rs = rs
-  (++) (l ': ls) rs = l ': (ls ++ rs)
-
 class Storable t where
+  type S t
   update :: Monitor t -> Double -> Monitor t
+  foobar :: Proxy t -> S t
   monitor :: Monitor t
-  sorry :: (a ~ S t) => a
-  monitor = m
-    where m :: Monitor t
-          m = Mon s
-          s :: a
-          s = sorry
+  monitor = Mon (foobar (Proxy :: Proxy t))
+
+class StorableWith t s where
 
 data Monitor :: * -> * where
   Mon :: (Storable t) => S t -> Monitor t
 
 data Monitors :: [*] -> * where
   MNow :: (Storable t) => Monitor t -> Monitors '[t]
-  {-(:++) :: Monitors tl -> Monitors tr -> Monitors (tl ++ tr)-}
   (:<) :: (Storable t) => Monitor t -> Monitors ts -> Monitors (t ': ts)
 
+infixr 5 :<
 
+{-_m1 :: Monitors (t ': _ts) -> Monitor t-}
+{-_m1 (m :< _) = m-}
+{-_m1 (MNow m) = m-}
 
-{-instance (Stringies ts) => Stringies (t ': ts)-}
-{-class (Resultable t String, Stringies ts) => Stringies (t ': ts)-}
+{-_m2 :: Monitors (_t ': t ': _ts) -> Monitor t-}
+{-_m2 (_ :< m :< _) = m-}
+{-_m2 (_ :< MNow m) = m-}
+
+{-_m3 :: Monitors (_t ': _t' ': t ': _ts) -> Monitor t-}
+{-_m3 (_ :< _ :< MNow m) = m-}
+{-_m3 (_ :< _ :< m :< _) = m-}
 
 -- tests
 
 silly :: Monitors '[Max, Percentile 5]
 silly = generate
-
-{-something :: (Resultable t String) => Monitors (t ': ts) -> IO ()-}
-{-something (m :< ms) = putStrLn (result m) >> something ms-}
-{-something (MNow m) = putStrLn $ result m-}
 
 -- stop
 
@@ -92,11 +88,10 @@ instance (Storable t, Generate ts) => Generate (t ': ts) where
 
 data Max
 
-type instance S Max = [Double]
-
 instance Storable Max where
+  type S Max = [Double]
   update (Mon xs) x = Mon $ x:xs
-  monitor = Mon []
+  foobar _ = []
 
 instance Resultable Max (Maybe Double) where
   result m = maximumMay (values m)
@@ -110,11 +105,11 @@ instance Resultable Max String where
 
 data Percentile :: Nat -> *
 
-type instance S (Percentile n) = [Double]
 
 instance Storable (Percentile n) where
+  type S (Percentile n) = [Double]
   update (Mon xs) x = Mon $ x:xs
-  monitor = Mon []
+  foobar _ = []
 
 instance (KnownNat n) => Resultable (Percentile n) (Maybe Double) where
   result m = xs `atMay` index
@@ -136,10 +131,9 @@ instance (KnownNat n) => Resultable (Percentile n) String where
 
 data Last :: Nat -> *
 
-type instance S (Last n) = [Double]
-
 instance (KnownNat n) => Storable (Last n) where
-  monitor = Mon []
+  type S (Last n) = [Double]
+  foobar _ = []
   update (Mon xs) x = Mon . take n $ (x:xs)
     where
       n = fromInteger $ natVal proxy :: Int

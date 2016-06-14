@@ -41,6 +41,7 @@ flop = do
     putStrLn $ HM3.result m'
 
     ms' <- foldM (\mo _ -> HM3.notify mo <$> performARequest') ms [1.. 1000]
+    {-let m1 :< m2 :< m3 = ms'-}
     let (m1, Just ms1) = HM3.pop ms'
     let (m2, Just ms2) = HM3.pop ms1
     let (m3, _) = HM3.pop ms2
