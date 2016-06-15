@@ -16,6 +16,39 @@ import Data.Proxy
 import GHC.TypeLits
 import Safe
 
+data OneOrList a = Si a | M [a]
+
+class Generate t where
+  generate :: Monitors t
+
+instance {-# OVERLAPPING #-} (Storable t) => Generate '[t] where
+  generate = MNow monitor
+
+instance (Storable t, Generate ts) => Generate (t ': ts) where
+  generate = monitor :< generate
+
+class Generate' t where
+  g' :: Monitor' t
+
+instance (Storable' t) => Generate' ('Si t) where
+  g' = Single (g proxy)
+          where
+            proxy :: Proxy t
+            proxy = Proxy
+
+
+instance (Storable' t) => Generate' ('M '[t]) where
+  g' = Multi $ Single (g proxy)
+    where
+      proxy :: Proxy t
+      proxy = Proxy
+
+instance (Storable' t, Generate' ('M ts)) => Generate' ('M (t ': ts)) where
+  g' = Single (g proxy) :> g'
+    where
+      proxy :: Proxy t
+      proxy = Proxy
+
 class Resultable t r where
   result :: Monitor t -> r
 
@@ -26,7 +59,32 @@ class Storable t where
   monitor :: Monitor t
   monitor = Mon (foobar (Proxy :: Proxy t))
 
-class StorableWith t s where
+class Resultable' t r where
+  r :: Monitor' t -> r
+
+class Storable' t where
+  type S' t
+  u :: Monitor' ('Si t) -> Double -> Monitor' ('Si t)
+  u' :: Proxy t -> S' t -> Double -> S' t
+  g :: Proxy t -> S' t
+  u (Single s) x = Single $ u' p s x
+    where
+      p :: Proxy t
+      p = Proxy
+
+
+notii :: Monitor' x -> Double -> Monitor' x
+notii (Multi m) x = Multi $ u m x
+notii m@(Single _) x = u m x
+notii (m :> ms) x = u m x :> notii ms x
+
+data Monitor' :: OneOrList * -> * where
+  Single :: (Storable' t) => S' t -> Monitor' ('Si t)
+  Multi :: (Storable' t) => Monitor' ('Si t) -> Monitor' ('M '[t])
+  (:>) :: (Storable' t)
+       => Monitor' ('Si t)
+       -> Monitor' ('M ts)
+       -> Monitor' ('M (t ': ts))
 
 data Monitor :: * -> * where
   Mon :: (Storable t) => S t -> Monitor t
@@ -36,19 +94,6 @@ data Monitors :: [*] -> * where
   (:<) :: (Storable t) => Monitor t -> Monitors ts -> Monitors (t ': ts)
 
 infixr 5 :<
-
-{-_m1 :: Monitors (t ': _ts) -> Monitor t-}
-{-_m1 (m :< _) = m-}
-{-_m1 (MNow m) = m-}
-
-{-_m2 :: Monitors (_t ': t ': _ts) -> Monitor t-}
-{-_m2 (_ :< m :< _) = m-}
-{-_m2 (_ :< MNow m) = m-}
-
-{-_m3 :: Monitors (_t ': _t' ': t ': _ts) -> Monitor t-}
-{-_m3 (_ :< _ :< MNow m) = m-}
-{-_m3 (_ :< _ :< m :< _) = m-}
-
 
 -- stop
 
@@ -69,17 +114,6 @@ pop :: Monitors (t ': ts) -> (Monitor t, Maybe (Monitors ts))
 pop (MNow m) = (m, Nothing)
 pop (m :< ms) = (m, Just ms)
 
--- Generation
-
-class Generate t where
-  generate :: Monitors t
-
-instance {-# OVERLAPPING #-} (Storable t) => Generate '[t] where
-  generate = MNow monitor
-
-instance (Storable t, Generate ts) => Generate (t ': ts) where
-  generate = monitor :< generate
-
 -- Instances
 
 data Max
@@ -98,9 +132,12 @@ instance Resultable Max String where
       naught = "No maximum found"
       res = result m :: Maybe Double
 
+instance Storable' Max where
+  type S' Max = [Double]
+  g _ = []
+  u' _ xs x = x:xs
 
 data Percentile :: Nat -> *
-
 
 instance Storable (Percentile n) where
   type S (Percentile n) = [Double]
