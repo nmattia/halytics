@@ -2,6 +2,7 @@
 
 import           Control.Monad       (foldM, replicateM_, void)
 import           Server              (Server (..), fastSum, request, slowSum)
+import Data.Proxy
 import           Statistics.Sample   (Sample)
 import           System.Random       (randomRIO)
 
@@ -21,30 +22,23 @@ type ServerID = Int
 
 {-type Percentile n = (HM.Percentile n, Maybe Double)-}
 
+type Benchmarker = (HM.M '[HM.Max, HM.Percentile 95])
+
 main :: IO ()
 main = flop
   where
     numberOfRequests = 10000
 
-
 flop :: IO ()
 flop = do
-    m' <- foldM (\mo _ -> HM.update mo <$> performARequest') m [1.. 1000]
-    putStrLn $ HM.result m'
-
-    ms' <- foldM (\mo _ -> HM.notify mo <$> performARequest') ms [1.. 1000]
-    {-let m1 :< m2 :< m3 = ms'-}
-    let (m1, Just ms1) = HM.pop ms'
-    let (m2, Just ms2) = HM.pop ms1
-    let (m3, _) = HM.pop ms2
-    putStrLn $ HM.result m1
-    putStrLn $ HM.result m2
-    putStrLn $ HM.result m3
+    ms' <- foldM (\mo _ -> HM.notii mo <$> performARequest') ms [1.. 1000]
+    let (m1, Just ms1) = HM.pop' ms'
+    putStrLn $ HM.result' p m1
     return ()
   where
-    m = HM.monitor :: HM.Monitor HM.Max
-    ms = HM.generate :: HM.Monitors '[HM.Max, HM.Percentile 99, HM.Last 5]
-
+    ms = HM.g' :: HM.Monitor' Benchmarker
+    p :: Proxy HM.Max
+    p = Proxy
 
 performARequest' :: IO Double
 performARequest' = do
