@@ -1,93 +1,146 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE EmptyDataDecls        #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE KindSignatures        #-}
-{-# LANGUAGE FlexibleContexts        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 
 module Halytics.Monitor where
 
+import Data.List    (intercalate, sort)
 import Data.Proxy
 import GHC.TypeLits
 import Safe
 
-class Resultable a a' where
-  toValue :: [Double] -> Result a a'
+class Resultable t r where
+  result :: Monitor t -> r
 
-class Generate a where
-  generate :: Monitor a
+class Storable t where
+  type S t
+  update :: Monitor t -> Double -> Monitor t
+  foobar :: Proxy t -> S t
+  monitor :: Monitor t
+  monitor = Mon (foobar (Proxy :: Proxy t))
 
-instance (Resultable a r) => Generate '[(a, r)] where
-  generate = MNow []
+class StorableWith t s where
 
-instance {-# OVERLAPPABLE #-} (Resultable a r, Generate as) => Generate ((a, r) ': as) where
-  generate = MNext generate
+data Monitor :: * -> * where
+  Mon :: (Storable t) => S t -> Monitor t
 
-data Monitor :: [*] -> * where
-  MNow :: (Resultable a a') => [Double] -> Monitor '[(a, a')]
-  MNext :: (Resultable a a') => Monitor as -> Monitor ((a, a') ': as)
+data Monitors :: [*] -> * where
+  MNow :: (Storable t) => Monitor t -> Monitors '[t]
+  (:<) :: (Storable t) => Monitor t -> Monitors ts -> Monitors (t ': ts)
 
-data Result a r = Result r deriving (Show)
+infixr 5 :<
 
-data Results :: [*] -> * where
-  RNow :: (Resultable a r) => Result a r -> Results '[(a, r)]
-  RNext :: (Resultable a r) => Result a r -> Results as -> Results ((a, r) ': as)
+{-_m1 :: Monitors (t ': _ts) -> Monitor t-}
+{-_m1 (m :< _) = m-}
+{-_m1 (MNow m) = m-}
 
-notify :: Monitor a -> Double -> Monitor a
-notify (MNow xs) x = MNow (x:xs)
-notify (MNext m) x = MNext (notify m x)
+{-_m2 :: Monitors (_t ': t ': _ts) -> Monitor t-}
+{-_m2 (_ :< m :< _) = m-}
+{-_m2 (_ :< MNow m) = m-}
 
-toValues :: Monitor as -> Results as
-toValues (MNow xs) = RNow $ toValue xs
-toValues (MNext m) = RNext (toValue (samples m)) (toValues m)
+{-_m3 :: Monitors (_t ': _t' ': t ': _ts) -> Monitor t-}
+{-_m3 (_ :< _ :< MNow m) = m-}
+{-_m3 (_ :< _ :< m :< _) = m-}
 
-samples :: Monitor l -> [Double]
-samples (MNow xs) = xs
-samples (MNext m) = samples m
+
+-- stop
+
+values :: Monitor t -> S t
+values (Mon s) = s
+
+notify :: Monitors ts -> Double -> Monitors ts
+notify (MNow m) x = MNow m'
+  where m' = update m x
+notify (m :< ms) x = m' :< notify ms x
+  where m' = update m x
+
+popResult :: (Resultable t r) => Monitors (t ': ts) -> (r, Monitors ts)
+popResult (MNow m) = (result m, undefined)
+popResult (m :< ms) = (result m, ms)
+
+pop :: Monitors (t ': ts) -> (Monitor t, Maybe (Monitors ts))
+pop (MNow m) = (m, Nothing)
+pop (m :< ms) = (m, Just ms)
+
+-- Generation
+
+class Generate t where
+  generate :: Monitors t
+
+instance {-# OVERLAPPING #-} (Storable t) => Generate '[t] where
+  generate = MNow monitor
+
+instance (Storable t, Generate ts) => Generate (t ': ts) where
+  generate = monitor :< generate
 
 -- Instances
 
 data Max
 
-instance Resultable Max String where
-  toValue xs = Result $ show res
-    where res = toValue xs :: Result Max (Maybe Double)
+instance Storable Max where
+  type S Max = [Double]
+  update (Mon xs) x = Mon $ x:xs
+  foobar _ = []
 
 instance Resultable Max (Maybe Double) where
-  toValue = Result . maximumMay
+  result m = maximumMay (values m)
 
-data Min
-
-instance Resultable Min (Maybe Double) where
-  toValue = Result . minimumMay
-
-instance Resultable Min String where
-  toValue xs = Result msg
+instance Resultable Max String where
+  result m = maybe naught (\x -> "Max: " ++ show x) res
     where
-      msg = maybe "No minimum found" (\m' -> "Minimum: " ++ show m') m
-      (Result m) = toValue xs :: Result Min (Maybe Double)
+      naught = "No maximum found"
+      res = result m :: Maybe Double
 
-type Median = Percentile 50
 
 data Percentile :: Nat -> *
 
+
+instance Storable (Percentile n) where
+  type S (Percentile n) = [Double]
+  update (Mon xs) x = Mon $ x:xs
+  foobar _ = []
+
 instance (KnownNat n) => Resultable (Percentile n) (Maybe Double) where
-  toValue xs = Result $ atMay xs index
-    where proxy = Proxy :: Proxy n
-          index = l * n `div` 100
-          n = fromInteger $ natVal proxy :: Int
-          l = length xs
+  result m = xs `atMay` index
+    where
+      index = l * n `div` 100
+      n = fromInteger $ natVal proxy :: Int
+      l = length xs
+      proxy = Proxy :: Proxy n
+      xs = sort $ values m
 
 instance (KnownNat n) => Resultable (Percentile n) String where
-  toValue xs = Result $ show res
-    where res = toValue xs :: Result (Percentile n) (Maybe Double)
+  result m = maybe naught f res
+    where
+      res = result m :: (Maybe Double)
+      naught = "No " ++ show n ++ "th percentile available"
+      f p = show n ++ "th percentile: " ++ show p
+      n = fromInteger $ natVal proxy :: Int
+      proxy = Proxy :: Proxy n
 
-instance Show (Results '[]) where
-  show _ = ""
+data Last :: Nat -> *
 
-instance (Show r, Show (Results as)) => Show (Results ((a, r) ': as)) where
-  show (RNow (Result r)) = show r
-  show (RNext (Result r) rs) = show r ++ "\n" ++ show rs
+instance (KnownNat n) => Storable (Last n) where
+  type S (Last n) = [Double]
+  foobar _ = []
+  update (Mon xs) x = Mon . take n $ (x:xs)
+    where
+      n = fromInteger $ natVal proxy :: Int
+      proxy = Proxy :: Proxy n
+
+instance Resultable (Last n) [Double] where
+  result = values
+
+instance Resultable (Last n) String where
+  result m = "Last entries: " ++ entries showed ++ "."
+    where
+      entries [] = "(none)"
+      entries xs = "... " ++ intercalate ", " xs
+      showed = show <$> (result m :: [Double])
