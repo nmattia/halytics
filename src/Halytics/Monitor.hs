@@ -11,12 +11,25 @@
 
 module Halytics.Monitor where
 
-import Data.List    (intercalate, sort)
+import Data.List    (foldl', sort)
 import Data.Proxy
 import GHC.TypeLits
 import Safe
 
-data OneOrList a = Si a | M [a] -- TODO: should this be an actual tree? S a | M [OoL a]
+_testA = g' :: Monitor TestA
+_testB = g' :: Monitor TestB
+_testC = g' :: Monitor TestC
+_testD = g' :: Monitor TestD
+_testE = g' :: Monitor TestE
+
+type TestA = 'Si Max
+type TestB = 'M '[ 'Si Max]
+type TestC = 'M '[ 'Si Max, 'Si Max]
+type TestD = 'M '[TestB]
+type TestE = 'M '[TestC]
+type TestF = 'M '[TestE, TestC]
+
+data Tree a = Si a | M [Tree a]
 
 class Generate t where
   g' :: Monitor t
@@ -24,11 +37,11 @@ class Generate t where
 instance (Storable t) => Generate ('Si t) where
   g' = Single (g (Proxy :: Proxy t))
 
-instance {-# OVERLAPPING #-} (Storable t) => Generate ('M '[t]) where
-  g' = Multi $ Single (g (Proxy :: Proxy t))
+instance {-# OVERLAPPING #-} (Generate t) => Generate ('M '[t]) where
+  g' = Multi g'
 
-instance (Storable t, Generate ('M ts)) => Generate ('M (t ': ts)) where
-  g' = Single (g (Proxy :: Proxy t)) :> g'
+instance (Generate t, Generate ('M ts)) => Generate ('M (t ': ts)) where
+  g' = g' :> g'
 
 class Resultable t r where
   r :: Proxy t -> S t -> r
@@ -46,36 +59,31 @@ result' p (Single s) = r p s
 result :: (Resultable t r) => Monitor ('Si t) -> r
 result = result' (Proxy :: Proxy t)
 
-n1 :: Monitor ('M (t ': ts)) -> Monitor ('Si t)
+n1 :: Monitor ('M (t ': ts)) -> Monitor t
 n1 (Multi m) = m
 n1 (m :> _) = m
 
-n2 :: Monitor ('M (t0 ': t ': ts)) -> Monitor ('Si t)
+n2 :: Monitor ('M (t0 ': t ': ts)) -> Monitor t
 n2 (_ :> m :> _) = m
 n2 (_ :> Multi m) = m
 
-n3 :: Monitor ('M (t0 ': t1 ': t ': ts)) -> Monitor ('Si t)
+n3 :: Monitor ('M (t0 ': t1 ': t ': ts)) -> Monitor t
 n3 (_ :> _ :> m :> _) = m
 n3 (_ :> _ :> Multi m) = m
 
 notify :: Monitor x -> Double -> Monitor x
-notify (Multi m) x = Multi $ u m x
+notify (Multi m) x = Multi $ notify m x
 notify m@(Single _) x = u m x
-notify (m :> ms) x = u m x :> notify ms x
+notify (m :> ms) x = notify m x :> notify ms x
 
-data Monitor :: OneOrList * -> * where
+data Monitor :: Tree * -> * where
   Single :: (Storable t) => S t -> Monitor ('Si t)
-  Multi :: (Storable t) => Monitor ('Si t) -> Monitor ('M '[t])
-  (:>) :: (Storable t)
-       => Monitor ('Si t)
+  Multi :: Monitor t -> Monitor ('M '[t])
+  (:>) :: Monitor t
        -> Monitor ('M ts)
        -> Monitor ('M (t ': ts))
 
 infixr 5 :>
-
-pop' :: Monitor ('M (t ': ts)) -> (Monitor ('Si t), Maybe (Monitor ('M ts)))
-pop' (Multi m) = (m, Nothing)
-pop' (m :> ms) = (m, Just ms)
 
 -- Instances
 
@@ -118,25 +126,6 @@ instance (KnownNat n) => Resultable (Percentile n) String where
       f perc = show n ++ "th percentile: " ++ show perc
       n = fromInteger $ natVal (Proxy :: Proxy n) :: Int
 
-data Last :: Nat -> *
-
-instance (KnownNat n) => Storable (Last n) where
-  type S (Last n) = [Double]
-  g _ = []
-  u' _ xs x = take n (x:xs)
-    where
-      n = fromInteger $ natVal (Proxy :: Proxy n) :: Int
-
-instance Resultable (Last n) [Double] where
-  r _ xs = xs
-
-instance Resultable (Last n) String where
-  r _ xs = "Last entries: " ++ entries showed ++ "."
-    where
-      entries [] = "(none)"
-      entries ss = "... " ++ intercalate ", " ss
-      showed = show <$> (xs :: [Double])
-
 data All :: *
 
 instance Storable All where
@@ -165,3 +154,17 @@ instance (Storable s, KnownNat n) => Storable (Every n s) where
 
 instance (Resultable t r) => Resultable (Every n t) r where
   r _ (_, s) = r (Proxy :: Proxy t) s
+
+data Last :: Nat -> * -> *
+
+instance (KnownNat n) => Storable (Last n s) where
+  type S (Last n s) = [Double]
+  g _ = []
+  u' _ xs x = take n (x:xs)
+    where
+      n = fromInteger $ natVal (Proxy :: Proxy n) :: Int
+
+instance (Storable t, Resultable t r) => Resultable (Last n t) r where
+  r _ xs = r (Proxy :: Proxy t) s
+    where
+      s = foldl' (u' (Proxy :: Proxy t)) (g (Proxy :: Proxy t)) xs

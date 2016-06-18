@@ -7,7 +7,6 @@ import Data.Proxy
 import           Statistics.Sample   (Sample)
 import           System.Random       (randomRIO)
 
-import qualified Halytics.Monitor    as HM
 import qualified Halytics.Report     as HR
 import qualified Statistics.Quantile as Quant
 import qualified Statistics.Sample   as Stats
@@ -17,11 +16,12 @@ import Halytics.Monitor
 
 type ServerID = Int
 
-type Benchmarker = (M '[Max, Percentile 95, Max &^ Every 6])
-{-type Be = (M '[Si [],Max])-}
-
-mmm :: Monitor Be
-mmm = undefined
+type Benchmarker =
+  (M '[ Si Max
+      , Si (Percentile 95)
+      , Si (Max &^ Every 6)
+      , M '[ Si Max
+           , Si (Max &^ Last 10)]])
 
 main :: IO ()
 main = flop
@@ -30,12 +30,12 @@ main = flop
 
 flop :: IO ()
 flop = do
-    ms' <- foldM (\mo _ -> HM.notify mo <$> performARequest) m0 [1.. 1000]
-    putStrLn $ HM.result $ HM.n1 ms'
-    putStrLn $ HM.result $ HM.n2 ms'
-    putStrLn $ HM.result $ HM.n3 ms'
+    ms' <- foldM (\mo _ -> notify mo <$> performARequest) m0 [1.. 1000]
+    putStrLn $ result $ n1 ms'
+    putStrLn $ result $ n2 ms'
+    putStrLn $ result $ n3 ms'
   where
-    m0 = g' :: HM.Monitor Benchmarker
+    m0 = g' :: Monitor Benchmarker
 
 -- Time measuring
 
