@@ -5,29 +5,20 @@
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 
 module Halytics.Monitor where
 
-import Data.List    (foldl', sort)
+import Control.Lens       (Lens, lens)
+import Control.Lens.Tuple
+import Data.List          (foldl', sort)
+import Data.List.Split    (chunksOf)
 import Data.Proxy
 import GHC.TypeLits
 import Safe
-
-_testA = g' :: Monitor TestA
-_testB = g' :: Monitor TestB
-_testC = g' :: Monitor TestC
-_testD = g' :: Monitor TestD
-_testE = g' :: Monitor TestE
-
-type TestA = 'Si Max
-type TestB = 'M '[ 'Si Max]
-type TestC = 'M '[ 'Si Max, 'Si Max]
-type TestD = 'M '[TestB]
-type TestE = 'M '[TestC]
-type TestF = 'M '[TestE, TestC]
 
 data Tree a = Si a | M [Tree a]
 
@@ -58,6 +49,28 @@ result' p (Single s) = r p s
 
 result :: (Resultable t r) => Monitor ('Si t) -> r
 result = result' (Proxy :: Proxy t)
+
+-- instance Field1 (a,b) (a',b) a a' where
+instance Field1 (Monitor ('M '[ 'Si t])) (Monitor ('M '[ 'Si t'])) (Monitor ('Si t)) (Monitor ('Si t')) where
+  _1 = lens pull1 replace1 :: ThisLens t t'
+  {-_1 = undefined :: Lens (Monitor ('Si t)) (Monitor ('Si t')) t t'-}
+type ThisLens t t' = Lens (Monitor ('M '[ 'Si t])) (Monitor ('M '[ 'Si t'])) (Monitor ('Si t)) (Monitor ('Si t'))
+
+-- type Lens s t a b = forall f. Functor f => (a -> f b) -> s -> f t
+-- type Lens (Monitor ('Si t)) (Monitor ('Si t')) t t'
+--  = forall f. Functor f => (t -> f t') ->
+-- lens :: (s -> a) -> (s -> b -> t) -> Lens s t a b
+-- lens :: (Monitor ('M '[ 'Si t]) -> Monitor ('Si t))
+--      -> (Monitor ('M '[ 'Si t]) -> Monitor ('Si t') -> Monitor ('M '[ 'Si t']))
+--      -> Lens  s t a b
+--
+pull1 :: Monitor ('M '[ 'Si t]) -> Monitor ('Si t)
+pull1 (Multi m) = m
+pull1 (m :> _) = m
+
+replace1 :: Monitor ('M '[ 'Si t]) -> Monitor ('Si t') -> Monitor ('M '[ 'Si t'])
+replace1 (Multi _) m = Multi m
+replace1 (_ :> ms) m = m :> ms
 
 n1 :: Monitor ('M (t ': ts)) -> Monitor t
 n1 (Multi m) = m
@@ -170,3 +183,15 @@ instance (Storable t, Resultable t r) => Resultable (Last n t) r where
       s = foldl' (u' (Proxy :: Proxy t)) (g (Proxy :: Proxy t)) xs
 
 data PeriodOf :: Nat -> * -> *
+
+instance Storable (PeriodOf n s) where
+  type S (PeriodOf n s) = [Double]
+  g _ = []
+  u' _ xs x = x:xs
+
+instance (KnownNat n, Resultable t r, Storable t) => Resultable (PeriodOf n t) [r] where
+  r _ xs = r (Proxy :: Proxy t) <$> ss
+    where
+      ss = foldl' (u' (Proxy :: Proxy t)) (g (Proxy :: Proxy t)) <$> xss
+      xss = chunksOf n (reverse xs)
+      n = fromInteger $ natVal (Proxy :: Proxy n) :: Int
