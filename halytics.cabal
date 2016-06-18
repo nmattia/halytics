@@ -28,6 +28,7 @@ test-suite halytics-test
   hs-source-dirs:   test
   main-is:          Test/Spec.hs
   build-depends:       base
+                     , lens
                      , halytics
                      , tasty
                      , tasty-hunit

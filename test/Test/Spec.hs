@@ -5,6 +5,7 @@
 
 module Main (main) where
 
+import Control.Lens
 import Halytics.Monitor
 import Test.Tasty
 import Test.Tasty.HUnit (testCase, (@=?))
@@ -18,7 +19,7 @@ tests = testGroup "Tests" [lastFive, periodOfThree]
 lastFive :: TestTree
 lastFive = testCase "Max &^ Last 5" $ Just 5 @=? res
   where
-    monitor = g' :: Monitor ('Si (Max &^ Last 5))
+    monitor = g' :: Monitor ('L (Max &^ Last 5))
     monitor' = foldl notify monitor entries
     entries = [32.0, 45, 33, 1, 2, 3, 4, 5] :: [Double]
     res = result monitor' :: Maybe Double
@@ -26,19 +27,31 @@ lastFive = testCase "Max &^ Last 5" $ Just 5 @=? res
 periodOfThree :: TestTree
 periodOfThree = testCase "Max &^ PeriodOf 3" $ Just <$> [45, 3, 5] @=? res
   where
-    monitor = g' :: Monitor ('Si (Max &^ PeriodOf 3))
+    monitor = g' :: Monitor ('L (Max &^ PeriodOf 3))
     monitor' = foldl notify monitor entries
     entries = [32.0, 45, 33, 1, 2, 3, 4, 5] :: [Double]
     res = result monitor' :: [Maybe Double]
 
+--
+
+lens1 :: TestTree
+lens1 = testCase "_1" $ Just 6 @=? res
+  where
+    monitor = g' :: Monitor TestB
+    monitor' = foldl notify monitor entries
+    monitor'' = over _1 (`notify` 6) monitor'
+    entries = [32.0, 45, 33, 1, 2, 3, 4, 5] :: [Double]
+    res = result $ view _1 monitor' :: Maybe Double
+
+
 -- Test Monitor instantiation
 
-type TestA = 'Si Max
-type TestB = 'M '[ 'Si Max]
-type TestC = 'M '[ 'Si Max, 'Si Max]
-type TestD = 'M '[TestB]
-type TestE = 'M '[TestC]
-type TestF = 'M '[TestE, TestC]
+type TestA = 'L Max
+type TestB = 'N '[ 'L Max]
+type TestC = 'N '[ 'L Max, 'L Max]
+type TestD = 'N '[TestB]
+type TestE = 'N '[TestC]
+type TestF = 'N '[TestE, TestC]
 
 _testA = g' :: Monitor TestA
 _testB = g' :: Monitor TestB

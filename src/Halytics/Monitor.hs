@@ -20,18 +20,18 @@ import Data.Proxy
 import GHC.TypeLits
 import Safe
 
-data Tree a = Si a | M [Tree a]
+data Tree a = L a | N [Tree a]
 
 class Generate t where
   g' :: Monitor t
 
-instance (Storable t) => Generate ('Si t) where
+instance (Storable t) => Generate ('L t) where
   g' = Single (g (Proxy :: Proxy t))
 
-instance {-# OVERLAPPING #-} (Generate t) => Generate ('M '[t]) where
+instance {-# OVERLAPPING #-} (Generate t) => Generate ('N '[t]) where
   g' = Multi g'
 
-instance (Generate t, Generate ('M ts)) => Generate ('M (t ': ts)) where
+instance (Generate t, Generate ('N ts)) => Generate ('N (t ': ts)) where
   g' = g' :> g'
 
 class Resultable t r where
@@ -39,48 +39,55 @@ class Resultable t r where
 
 class Storable t where
   type S t
-  u :: Monitor ('Si t) -> Double -> Monitor ('Si t)
+  u :: Monitor ('L t) -> Double -> Monitor ('L t)
   u' :: Proxy t -> S t -> Double -> S t
   g :: Proxy t -> S t
   u (Single s) x = Single $ u' (Proxy :: Proxy t) s x
 
-result' :: (Resultable t r) => Proxy t -> Monitor ('Si t) -> r
+result' :: (Resultable t r) => Proxy t -> Monitor ('L t) -> r
 result' p (Single s) = r p s
 
-result :: (Resultable t r) => Monitor ('Si t) -> r
+result :: (Resultable t r) => Monitor ('L t) -> r
 result = result' (Proxy :: Proxy t)
 
+
+
 -- instance Field1 (a,b) (a',b) a a' where
-instance Field1 (Monitor ('M '[ 'Si t])) (Monitor ('M '[ 'Si t'])) (Monitor ('Si t)) (Monitor ('Si t')) where
-  _1 = lens pull1 replace1 :: ThisLens t t'
-  {-_1 = undefined :: Lens (Monitor ('Si t)) (Monitor ('Si t')) t t'-}
-type ThisLens t t' = Lens (Monitor ('M '[ 'Si t])) (Monitor ('M '[ 'Si t'])) (Monitor ('Si t)) (Monitor ('Si t'))
+  {-_1 = undefined :: Lens (Monitor ('L t)) (Monitor ('L t')) t t'-}
 
 -- type Lens s t a b = forall f. Functor f => (a -> f b) -> s -> f t
--- type Lens (Monitor ('Si t)) (Monitor ('Si t')) t t'
+-- type Lens (Monitor ('L t)) (Monitor ('L t')) t t'
 --  = forall f. Functor f => (t -> f t') ->
 -- lens :: (s -> a) -> (s -> b -> t) -> Lens s t a b
--- lens :: (Monitor ('M '[ 'Si t]) -> Monitor ('Si t))
---      -> (Monitor ('M '[ 'Si t]) -> Monitor ('Si t') -> Monitor ('M '[ 'Si t']))
+-- lens :: (Monitor ('N '[ 'L t]) -> Monitor ('L t))
+--      -> (Monitor ('N '[ 'L t]) -> Monitor ('L t') -> Monitor ('N '[ 'L t']))
 --      -> Lens  s t a b
+
+instance Field1 (Monitor ('N ('L t ': ts)))
+                (Monitor ('N ('L t' ': ts)))
+                (Monitor ('L t))
+                (Monitor ('L t')) where
+  _1 = lens pull1 replace1
+ -- :: ThisLens t t'
+{-type ThisLens t t' = Lens (Monitor ('N '[ 'L t])) (Monitor ('N '[ 'L t'])) (Monitor ('L t)) (Monitor ('L t'))-}
 --
-pull1 :: Monitor ('M '[ 'Si t]) -> Monitor ('Si t)
+pull1 :: Monitor ('N ('L t ': ts)) -> Monitor ('L t)
 pull1 (Multi m) = m
 pull1 (m :> _) = m
 
-replace1 :: Monitor ('M '[ 'Si t]) -> Monitor ('Si t') -> Monitor ('M '[ 'Si t'])
+replace1 :: Monitor ('N ('L t ': ts)) -> Monitor ('L t') -> Monitor ('N ('L t' ': ts))
 replace1 (Multi _) m = Multi m
 replace1 (_ :> ms) m = m :> ms
 
-n1 :: Monitor ('M (t ': ts)) -> Monitor t
+n1 :: Monitor ('N (t ': ts)) -> Monitor t
 n1 (Multi m) = m
 n1 (m :> _) = m
 
-n2 :: Monitor ('M (t0 ': t ': ts)) -> Monitor t
+n2 :: Monitor ('N (t0 ': t ': ts)) -> Monitor t
 n2 (_ :> m :> _) = m
 n2 (_ :> Multi m) = m
 
-n3 :: Monitor ('M (t0 ': t1 ': t ': ts)) -> Monitor t
+n3 :: Monitor ('N (t0 ': t1 ': t ': ts)) -> Monitor t
 n3 (_ :> _ :> m :> _) = m
 n3 (_ :> _ :> Multi m) = m
 
@@ -90,11 +97,11 @@ notify m@(Single _) x = u m x
 notify (m :> ms) x = notify m x :> notify ms x
 
 data Monitor :: Tree * -> * where
-  Single :: (Storable t) => S t -> Monitor ('Si t)
-  Multi :: Monitor t -> Monitor ('M '[t])
+  Single :: (Storable t) => S t -> Monitor ('L t)
+  Multi :: Monitor t -> Monitor ('N '[t])
   (:>) :: Monitor t
-       -> Monitor ('M ts)
-       -> Monitor ('M (t ': ts))
+       -> Monitor ('N ts)
+       -> Monitor ('N (t ': ts))
 
 infixr 5 :>
 

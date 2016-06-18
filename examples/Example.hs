@@ -1,27 +1,27 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds     #-}
 {-# LANGUAGE TypeOperators #-}
 
 import           Control.Monad       (foldM, replicateM_, void)
+import           Data.Proxy
 import           Server              (Server (..), fastSum, request, slowSum)
-import Data.Proxy
 import           Statistics.Sample   (Sample)
 import           System.Random       (randomRIO)
+import           Halytics.Monitor
 
 import qualified Statistics.Quantile as Quant
 import qualified Statistics.Sample   as Stats
 import qualified System.Clock        as Clk
 
-import Halytics.Monitor
 
 type ServerID = Int
 
 type Benchmarker =
-  (M '[ Si Max
-      , Si (Percentile 95)
-      , Si (Max &^ PeriodOf 6)
-      , Si (Max &^ Every 6)
-      , M '[ Si Max
-           , Si (Max &^ Last 10)]])
+  (N '[ L Max
+      , L (Percentile 95)
+      , L (Max &^ PeriodOf 6)
+      , L (Max &^ Every 6)
+      , N '[ L Max
+           , L (Max &^ Last 10)]])
 
 main :: IO ()
 main = flop
