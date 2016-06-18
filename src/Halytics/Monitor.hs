@@ -12,7 +12,7 @@
 
 module Halytics.Monitor where
 
-import Control.Lens       (Lens, lens)
+import Control.Lens       (lens)
 import Control.Lens.Tuple
 import Data.List          (foldl', sort)
 import Data.List.Split    (chunksOf)
@@ -50,8 +50,6 @@ result' p (Single s) = r p s
 result :: (Resultable t r) => Monitor ('L t) -> r
 result = result' (Proxy :: Proxy t)
 
-
-
 -- instance Field1 (a,b) (a',b) a a' where
   {-_1 = undefined :: Lens (Monitor ('L t)) (Monitor ('L t')) t t'-}
 
@@ -68,28 +66,31 @@ instance Field1 (Monitor ('N ('L t ': ts)))
                 (Monitor ('L t))
                 (Monitor ('L t')) where
   _1 = lens pull1 replace1
- -- :: ThisLens t t'
-{-type ThisLens t t' = Lens (Monitor ('N '[ 'L t])) (Monitor ('N '[ 'L t'])) (Monitor ('L t)) (Monitor ('L t'))-}
---
+
 pull1 :: Monitor ('N ('L t ': ts)) -> Monitor ('L t)
 pull1 (Multi m) = m
 pull1 (m :> _) = m
 
-replace1 :: Monitor ('N ('L t ': ts)) -> Monitor ('L t') -> Monitor ('N ('L t' ': ts))
+replace1 :: Monitor ('N ('L t ': ts))
+         -> Monitor ('L t')
+         -> Monitor ('N ('L t' ': ts))
 replace1 (Multi _) m = Multi m
 replace1 (_ :> ms) m = m :> ms
 
-n1 :: Monitor ('N (t ': ts)) -> Monitor t
-n1 (Multi m) = m
-n1 (m :> _) = m
+instance Field2 (Monitor ('N ('L t0 ': 'L t1  ': ts)))
+                (Monitor ('N ('L t0 ': 'L t1' ': ts)))
+                (Monitor ('L t1))
+                (Monitor ('L t1')) where
+  _2 = lens pull2 replace2
 
-n2 :: Monitor ('N (t0 ': t ': ts)) -> Monitor t
-n2 (_ :> m :> _) = m
-n2 (_ :> Multi m) = m
 
-n3 :: Monitor ('N (t0 ': t1 ': t ': ts)) -> Monitor t
-n3 (_ :> _ :> m :> _) = m
-n3 (_ :> _ :> Multi m) = m
+pull2 :: Monitor ('N ('L t0 ': 'L t1 ': ts)) -> Monitor ('L t1)
+pull2 (_ :> ms) = pull1 ms
+
+replace2 :: Monitor ('N ('L t0 ': 'L t1 ': ts))
+         -> Monitor ('L t1')
+         -> Monitor ('N ('L t0 ': 'L t1' ': ts))
+replace2 (m0 :> ms) m1 = m0 :> replace1 ms m1
 
 notify :: Monitor x -> Double -> Monitor x
 notify (Multi m) x = Multi $ notify m x
@@ -156,13 +157,8 @@ instance Storable All where
 instance Resultable All [Double] where
   r _ xs = xs
 
-type family (++) (ls :: [*]) (rs :: [*]) :: [*] where
-  (++) ls '[] = ls
-  (++) '[] rs = rs
-  (++) (l ': ls) rs = l ': (ls ++ rs)
-
-type family (&^) (sub :: *) (over :: * -> *) :: * where
-  (&^) sub over = over sub
+type family (|^) (sub :: *) (over :: * -> *) :: * where
+  (|^) sub over = over sub
 
 data Every :: Nat -> * -> *
 

@@ -14,20 +14,20 @@ main :: IO ()
 main = defaultMain tests
 
 tests :: TestTree
-tests = testGroup "Tests" [lastFive, periodOfThree]
+tests = testGroup "Tests" [lastFive, periodOfThree, lens1]
 
 lastFive :: TestTree
-lastFive = testCase "Max &^ Last 5" $ Just 5 @=? res
+lastFive = testCase "Max |^ Last 5" $ Just 5 @=? res
   where
-    monitor = g' :: Monitor ('L (Max &^ Last 5))
+    monitor = g' :: Monitor ('L (Max |^ Last 5))
     monitor' = foldl notify monitor entries
     entries = [32.0, 45, 33, 1, 2, 3, 4, 5] :: [Double]
     res = result monitor' :: Maybe Double
 
 periodOfThree :: TestTree
-periodOfThree = testCase "Max &^ PeriodOf 3" $ Just <$> [45, 3, 5] @=? res
+periodOfThree = testCase "Max |^ PeriodOf 3" $ Just <$> [45, 3, 5] @=? res
   where
-    monitor = g' :: Monitor ('L (Max &^ PeriodOf 3))
+    monitor = g' :: Monitor ('L (Max |^ PeriodOf 3))
     monitor' = foldl notify monitor entries
     entries = [32.0, 45, 33, 1, 2, 3, 4, 5] :: [Double]
     res = result monitor' :: [Maybe Double]
@@ -35,13 +35,13 @@ periodOfThree = testCase "Max &^ PeriodOf 3" $ Just <$> [45, 3, 5] @=? res
 --
 
 lens1 :: TestTree
-lens1 = testCase "_1" $ Just 6 @=? res
+lens1 = testCase "_1" $ Just 100 @=? res
   where
     monitor = g' :: Monitor TestB
     monitor' = foldl notify monitor entries
-    monitor'' = over _1 (`notify` 6) monitor'
+    monitor'' = monitor' & _1 %~ (`notify` 100)
     entries = [32.0, 45, 33, 1, 2, 3, 4, 5] :: [Double]
-    res = result $ view _1 monitor' :: Maybe Double
+    res = monitor'' ^. _1 & result :: Maybe Double
 
 
 -- Test Monitor instantiation

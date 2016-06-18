@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeOperators #-}
 
 import           Control.Monad       (foldM, replicateM_, void)
+import Control.Lens
 import           Data.Proxy
 import           Server              (Server (..), fastSum, request, slowSum)
 import           Statistics.Sample   (Sample)
@@ -18,10 +19,10 @@ type ServerID = Int
 type Benchmarker =
   (N '[ L Max
       , L (Percentile 95)
-      , L (Max &^ PeriodOf 6)
-      , L (Max &^ Every 6)
+      , L (Max |^ PeriodOf 6)
+      , L (Max |^ Every 6)
       , N '[ L Max
-           , L (Max &^ Last 10)]])
+           , L (Max |^ Last 10)]])
 
 main :: IO ()
 main = flop
@@ -31,9 +32,9 @@ main = flop
 flop :: IO ()
 flop = do
     ms' <- foldM (\mo _ -> notify mo <$> performARequest) m0 [1.. 1000]
-    putStrLn $ result $ n1 ms'
-    putStrLn $ result $ n2 ms'
-    mapM_ putStrLn (take 5 $ result $ n3 ms' :: [String])
+    putStrLn $ result $ ms'^._1
+    {-putStrLn $ result $ n2 ms'-}
+    {-mapM_ putStrLn (take 5 $ result $ n3 ms' :: [String])-}
   where
     m0 = g' :: Monitor Benchmarker
 
