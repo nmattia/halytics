@@ -22,22 +22,13 @@ class Generate t where
   g' :: Monitor t
 
 instance (Storable t) => Generate ('Si t) where
-  g' = Single (g proxy)
-          where
-            proxy :: Proxy t
-            proxy = Proxy
+  g' = Single (g (Proxy :: Proxy t))
 
 instance {-# OVERLAPPING #-} (Storable t) => Generate ('M '[t]) where
-  g' = Multi $ Single (g proxy)
-    where
-      proxy :: Proxy t
-      proxy = Proxy
+  g' = Multi $ Single (g (Proxy :: Proxy t))
 
 instance (Storable t, Generate ('M ts)) => Generate ('M (t ': ts)) where
-  g' = Single (g proxy) :> g'
-    where
-      proxy :: Proxy t
-      proxy = Proxy
+  g' = Single (g (Proxy :: Proxy t)) :> g'
 
 class Resultable t r where
   r :: Proxy t -> S t -> r
@@ -47,18 +38,30 @@ class Storable t where
   u :: Monitor ('Si t) -> Double -> Monitor ('Si t)
   u' :: Proxy t -> S t -> Double -> S t
   g :: Proxy t -> S t
-  u (Single s) x = Single $ u' p s x
-    where
-      p :: Proxy t
-      p = Proxy
+  u (Single s) x = Single $ u' (Proxy :: Proxy t) s x
 
 result' :: (Resultable t r) => Proxy t -> Monitor ('Si t) -> r
 result' p (Single s) = r p s
 
-notii :: Monitor x -> Double -> Monitor x
-notii (Multi m) x = Multi $ u m x
-notii m@(Single _) x = u m x
-notii (m :> ms) x = u m x :> notii ms x
+result :: (Resultable t r) => Monitor ('Si t) -> r
+result = result' (Proxy :: Proxy t)
+
+n1 :: Monitor ('M (t ': ts)) -> Monitor ('Si t)
+n1 (Multi m) = m
+n1 (m :> _) = m
+
+n2 :: Monitor ('M (t0 ': t ': ts)) -> Monitor ('Si t)
+n2 (_ :> m :> _) = m
+n2 (_ :> Multi m) = m
+
+n3 :: Monitor ('M (t0 ': t1 ': t ': ts)) -> Monitor ('Si t)
+n3 (_ :> _ :> m :> _) = m
+n3 (_ :> _ :> Multi m) = m
+
+notify :: Monitor x -> Double -> Monitor x
+notify (Multi m) x = Multi $ u m x
+notify m@(Single _) x = u m x
+notify (m :> ms) x = u m x :> notify ms x
 
 data Monitor :: OneOrList * -> * where
   Single :: (Storable t) => S t -> Monitor ('Si t)
@@ -69,7 +72,6 @@ data Monitor :: OneOrList * -> * where
        -> Monitor ('M (t ': ts))
 
 infixr 5 :>
-
 
 pop' :: Monitor ('M (t ': ts)) -> (Monitor ('Si t), Maybe (Monitor ('M ts)))
 pop' (Multi m) = (m, Nothing)
@@ -91,9 +93,7 @@ instance Resultable Max String where
   r _  xs = maybe naught (\x -> "Max: " ++ show x) res
     where
       naught = "No maximum found"
-      res = r p xs :: Maybe Double
-      p :: Proxy Max
-      p = Proxy
+      res = r (Proxy :: Proxy Max) xs :: Maybe Double
 
 data Percentile :: Nat -> *
 
@@ -106,38 +106,62 @@ instance (KnownNat n) => Resultable (Percentile n) (Maybe Double) where
   r _ xs = xs' `atMay` index
     where
       index = l * n `div` 100
-      n = fromInteger $ natVal proxy :: Int
+      n = fromInteger $ natVal (Proxy :: Proxy n) :: Int
       l = length xs
-      proxy = Proxy :: Proxy n
       xs' = sort xs
 
 instance (KnownNat n) => Resultable (Percentile n) String where
   r _ xs = maybe naught f res
     where
-      res = r p xs :: (Maybe Double)
-      p :: Proxy (Percentile n)
-      p = Proxy
+      res = r (Proxy :: Proxy (Percentile n)) xs :: (Maybe Double)
       naught = "No " ++ show n ++ "th percentile available"
-      f p = show n ++ "th percentile: " ++ show p
-      n = fromInteger $ natVal proxy :: Int
-      proxy = Proxy :: Proxy n
+      f perc = show n ++ "th percentile: " ++ show perc
+      n = fromInteger $ natVal (Proxy :: Proxy n) :: Int
 
-{-data Last :: Nat -> *-}
+data Last :: Nat -> *
 
-{-instance (KnownNat n) => Storable (Last n) where-}
-  {-type S (Last n) = [Double]-}
-  {-foobar _ = []-}
-  {-update (Mon xs) x = Mon . take n $ (x:xs)-}
-    {-where-}
-      {-n = fromInteger $ natVal proxy :: Int-}
-      {-proxy = Proxy :: Proxy n-}
+instance (KnownNat n) => Storable (Last n) where
+  type S (Last n) = [Double]
+  g _ = []
+  u' _ xs x = take n (x:xs)
+    where
+      n = fromInteger $ natVal (Proxy :: Proxy n) :: Int
 
-{-instance Resultable (Last n) [Double] where-}
-  {-result = values-}
+instance Resultable (Last n) [Double] where
+  r _ xs = xs
 
-{-instance Resultable (Last n) String where-}
-  {-result m = "Last entries: " ++ entries showed ++ "."-}
-    {-where-}
-      {-entries [] = "(none)"-}
-      {-entries xs = "... " ++ intercalate ", " xs-}
-      {-showed = show <$> (result m :: [Double])-}
+instance Resultable (Last n) String where
+  r _ xs = "Last entries: " ++ entries showed ++ "."
+    where
+      entries [] = "(none)"
+      entries ss = "... " ++ intercalate ", " ss
+      showed = show <$> (xs :: [Double])
+
+data All :: *
+
+instance Storable All where
+  type S All = [Double]
+  u' _ xs x = x:xs
+  g _ = []
+
+instance Resultable All [Double] where
+  r _ xs = xs
+
+type family (++) (ls :: [*]) (rs :: [*]) :: [*] where
+  (++) ls '[] = ls
+  (++) '[] rs = rs
+  (++) (l ': ls) rs = l ': (ls ++ rs)
+
+type family (&^) (sub :: *) (over :: * -> *) :: * where
+  (&^) sub over = over sub
+
+data Every :: Nat -> * -> *
+
+instance (Storable s, KnownNat n) => Storable (Every n s) where
+  type S (Every n s) = (Integer, S s)
+  g _ = (natVal (Proxy :: Proxy n), g (Proxy :: Proxy s))
+  u' _ (0, s) x = (natVal (Proxy :: Proxy n), u' (Proxy :: Proxy s) s x)
+  u' _ (n, s) _ = (n-1, s)
+
+instance (Resultable t r) => Resultable (Every n t) r where
+  r _ (_, s) = r (Proxy :: Proxy t) s

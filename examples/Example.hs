@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeOperators #-}
 
 import           Control.Monad       (foldM, replicateM_, void)
 import           Server              (Server (..), fastSum, request, slowSum)
@@ -6,23 +7,21 @@ import Data.Proxy
 import           Statistics.Sample   (Sample)
 import           System.Random       (randomRIO)
 
-import qualified Halytics.Collector  as HC
 import qualified Halytics.Monitor    as HM
 import qualified Halytics.Report     as HR
 import qualified Statistics.Quantile as Quant
 import qualified Statistics.Sample   as Stats
 import qualified System.Clock        as Clk
 
+import Halytics.Monitor
+
 type ServerID = Int
-{-type Max = (HM.Max, Maybe Double)-}
-{-type Min = (HM.Min, Maybe Double)-}
 
-{-type Max' = (HM.Max, String)-}
-{-type Min' = (HM.Min, String)-}
+type Benchmarker = (M '[Max, Percentile 95, Max &^ Every 6])
+{-type Be = (M '[Si [],Max])-}
 
-{-type Percentile n = (HM.Percentile n, Maybe Double)-}
-
-type Benchmarker = (HM.M '[HM.Max, HM.Percentile 95])
+mmm :: Monitor Be
+mmm = undefined
 
 main :: IO ()
 main = flop
@@ -31,30 +30,20 @@ main = flop
 
 flop :: IO ()
 flop = do
-    ms' <- foldM (\mo _ -> HM.notii mo <$> performARequest') ms [1.. 1000]
-    let (m1, Just ms1) = HM.pop' ms'
-    putStrLn $ HM.result' p m1
-    return ()
+    ms' <- foldM (\mo _ -> HM.notify mo <$> performARequest) m0 [1.. 1000]
+    putStrLn $ HM.result $ HM.n1 ms'
+    putStrLn $ HM.result $ HM.n2 ms'
+    putStrLn $ HM.result $ HM.n3 ms'
   where
-    ms = HM.g' :: HM.Monitor' Benchmarker
-    p :: Proxy HM.Max
-    p = Proxy
+    m0 = g' :: HM.Monitor Benchmarker
 
-performARequest' :: IO Double
-performARequest' = do
+-- Time measuring
+
+performARequest :: IO Double
+performARequest = do
   input <- randomRIO (1000, 100000)
   (_result, us) <- measure $ request (Server slowSum) input
   return us
-
-performARequest :: HC.Collector ServerID -> IO (HC.Collector ServerID)
-performARequest collector = do
-  (serverID, server) <- let randomIndex = randomRIO (0, numberOfServers -1)
-                        in (servers !!) <$> randomIndex
-  input <- randomRIO (1000, 100000)
-  (_result, us) <- measure $ request server input
-  return $ HC.notify collector serverID us
-  where
-    numberOfServers = length servers
 
 servers :: [(ServerID, Server)]
 servers = zip [1 .. ] [slowServer, fastServer, slowServer]
