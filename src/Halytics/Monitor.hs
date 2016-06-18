@@ -168,3 +168,5 @@ instance (Storable t, Resultable t r) => Resultable (Last n t) r where
   r _ xs = r (Proxy :: Proxy t) s
     where
       s = foldl' (u' (Proxy :: Proxy t)) (g (Proxy :: Proxy t)) xs
+
+data PeriodOf :: Nat -> * -> *
