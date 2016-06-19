@@ -9,8 +9,8 @@
 module Halytics.Monitor.Lens where
 
 import Control.Lens              (lens)
-import Control.Lens.Tuple        (Field1, Field2, Field3, Field4, _1, _2, _3,
-                                  _4)
+import Control.Lens.Tuple        (Field1, Field2, Field3, Field4, Field5,
+                                  Field6, _1, _2, _3, _4, _5, _6)
 import Halytics.Monitor.Internal
 
 instance Field1 (Monitor ('N ('L t ': ts)))
@@ -73,3 +73,33 @@ replace4 :: Monitor ('N ('L t0 ': 'L t1 ': 'L t2 ': 'L t3 ': ts))
          -> Monitor ('L t3')
          -> Monitor ('N ('L t0 ': 'L t1 ': 'L t2 ': 'L t3' ': ts))
 replace4 (m0 :> ms) m = m0 :> replace3 ms m
+
+instance Field5 (Monitor ('N ('L t0 ': 'L t1 ': 'L t2 ': 'L t3 ': 'L t4 ': ts)))
+                (Monitor ('N ('L t0 ': 'L t1 ': 'L t2 ': 'L t3 ': 'L t4' ': ts)))
+                (Monitor ('L t4))
+                (Monitor ('L t4')) where
+  _5 = lens pull5 replace5
+
+pull5 :: Monitor ('N ('L t0 ': 'L t1 ': 'L t2 ': 'L t3 ': 'L t4 ': ts))
+      -> Monitor ('L t4)
+pull5 (_ :> ms) = pull4 ms
+
+replace5 :: Monitor ('N ('L t0 ': 'L t1 ': 'L t2 ': 'L t3 ': 'L t4 ': ts))
+         -> Monitor ('L t4')
+         -> Monitor ('N ('L t0 ': 'L t1 ': 'L t2 ': 'L t3 ': 'L t4' ': ts))
+replace5 (m0 :> ms) m = m0 :> replace4 ms m
+
+instance Field6 (Monitor ('N ('L t0 ': 'L t1 ': 'L t2 ': 'L t3 ': 'L t4 ': 'L t5 ': ts)))
+                (Monitor ('N ('L t0 ': 'L t1 ': 'L t2 ': 'L t3 ': 'L t4 ': 'L t5' ': ts)))
+                (Monitor ('L t5))
+                (Monitor ('L t5')) where
+  _6 = lens pull6 replace6
+
+pull6 :: Monitor ('N ('L t0 ': 'L t1 ': 'L t2 ': 'L t3 ': 'L t4 ': 'L t5 ': ts))
+      -> Monitor ('L t5)
+pull6 (_ :> ms) = pull5 ms
+
+replace6 :: Monitor ('N ('L t0 ': 'L t1 ': 'L t2 ': 'L t3 ': 'L t4 ': 'L t5 ': ts))
+         -> Monitor ('L t5')
+         -> Monitor ('N ('L t0 ': 'L t1 ': 'L t2 ': 'L t3 ': 'L t4 ': 'L t5' ': ts))
+replace6 (m0 :> ms) m = m0 :> replace5 ms m

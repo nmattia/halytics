@@ -33,6 +33,8 @@ flop :: IO ()
 flop = do
     ms' <- foldM (\mo _ -> notify mo <$> performARequest) m0 [1.. 1000]
     putStrLn $ result $ ms'^._1
+    putStrLn $ result $ ms'^._2
+    putStrLn $ result $ ms'^._4
     {-putStrLn $ result $ n2 ms'-}
     {-mapM_ putStrLn (take 5 $ result $ n3 ms' :: [String])-}
   where
