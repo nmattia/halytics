@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE EmptyDataDecls        #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE KindSignatures        #-}
@@ -9,20 +10,60 @@
 
 module Halytics.Monitor.Metric where
 
-import Data.List
-import Data.List.Split           (chunksOf)
-import Data.Proxy
-import GHC.TypeLits
-import Safe
+import           Control.Monad.ST
+import           Data.List
+import           Data.List.Split             (chunksOf)
+import           Data.Proxy
+import           GHC.TypeLits
+import           Safe
+import           Statistics.Sample           (mean)
 
-import Halytics.Monitor.Internal
+import           Halytics.Monitor.Internal
+
+import qualified Data.Vector.Unboxed         as V
+import qualified Data.Vector.Unboxed.Mutable as MV
+
+newtype StoredStats a = StoredStats a
+
+class FromStats a r where
+  func :: Proxy a -> V.Vector Double -> r
+
+instance Storable (StoredStats a) where
+  type S (StoredStats a) = [Double]
+  u' _ = flip (:)
+  g _ = []
+
+instance (Storable a, FromStats a r) => Resultable (StoredStats a) r where
+  r _ xs = func (Proxy :: Proxy a) vec
+    where
+      vec = runST $ do
+        vec' <- MV.new l
+        mapM_ (uncurry $ MV.write vec') ixed
+        V.freeze vec'
+      l = length xs
+      ixed = zip [0, 1 ..] xs
+
+data All :: *
+
+instance Storable All where
+  type S All = [Double]
+  u' _ = flip (:)
+  g _ = []
+
+instance Resultable All [Double] where
+  r _ xs = xs
+
+data Mean
+
+instance FromStats Mean Double where
+  func _ = mean
 
 data Max
 
 instance Storable Max where
   type S Max = [Double]
   g _ = []
-  u' _ xs x = x:xs
+  u' _ = flip (:)
 
 instance Resultable Max (Maybe Double) where
   r _ = maximumMay
@@ -37,7 +78,7 @@ data Percentile :: Nat -> *
 
 instance Storable (Percentile n) where
   type S (Percentile n) = [Double]
-  u' _ xs x = x:xs
+  u' _ = flip (:)
   g _ = []
 
 instance (KnownNat n) => Resultable (Percentile n) (Maybe Double) where
@@ -56,15 +97,7 @@ instance (KnownNat n) => Resultable (Percentile n) String where
       f perc = show n ++ "th percentile: " ++ show perc
       n = fromInteger $ natVal (Proxy :: Proxy n) :: Int
 
-data All :: *
-
-instance Storable All where
-  type S All = [Double]
-  u' _ xs x = x:xs
-  g _ = []
-
-instance Resultable All [Double] where
-  r _ xs = xs
+-- Combinators
 
 data Every :: Nat -> * -> *
 
@@ -96,7 +129,7 @@ data PeriodOf :: Nat -> * -> *
 instance Storable (PeriodOf n s) where
   type S (PeriodOf n s) = [Double]
   g _ = []
-  u' _ xs x = x:xs
+  u' _ = flip (:)
 
 instance (KnownNat n, Resultable t r, Storable t) => Resultable (PeriodOf n t) [r] where
   r _ xs = r (Proxy :: Proxy t) <$> ss
