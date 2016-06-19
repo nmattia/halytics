@@ -10,13 +10,12 @@
 
 module Halytics.Monitor.Metric where
 
-import           Data.List
-import           Data.List.Split             (chunksOf)
-import           Data.Proxy
-import           GHC.TypeLits
-import           Safe
-
-import           Halytics.Monitor.Internal
+import Data.List
+import Data.List.Split           (chunksOf)
+import Data.Proxy
+import GHC.TypeLits
+import Halytics.Monitor.Internal
+import Safe
 
 
 data All :: *
