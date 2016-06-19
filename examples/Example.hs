@@ -13,7 +13,6 @@ import qualified Statistics.Quantile as Quant
 import qualified Statistics.Sample   as Stats
 import qualified System.Clock        as Clk
 
-
 type ServerID = Int
 
 type Benchmarker =
@@ -32,11 +31,10 @@ main = flop
 flop :: IO ()
 flop = do
     ms' <- foldM (\mo _ -> notify mo <$> performARequest) m0 [1.. 1000]
-    putStrLn $ result $ ms'^._1
-    putStrLn $ result $ ms'^._2
-    putStrLn $ result $ ms'^._4
-    {-putStrLn $ result $ n2 ms'-}
-    {-mapM_ putStrLn (take 5 $ result $ n3 ms' :: [String])-}
+    ms'^._1 & (putStrLn . result)
+    ms'^._2 & (putStrLn . result)
+    ms'^._4 & (putStrLn . result)
+    ms'^._5._2 & (putStrLn . result)
   where
     m0 = g' :: Monitor Benchmarker
 
