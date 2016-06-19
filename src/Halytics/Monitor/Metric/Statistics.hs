@@ -9,9 +9,10 @@ module Halytics.Monitor.Metric.Statistics where
 
 import           Data.Proxy
 import           GHC.TypeLits
-import           Halytics.Monitor
+import           Halytics.Monitor.Internal
 
 import qualified Data.Vector.Unboxed as V
+import qualified Statistics.Quantile as Stats
 import qualified Statistics.Sample   as Stats
 
 newtype StoredStats a = StoredStats a
@@ -26,6 +27,8 @@ instance Storable (StoredStats a) where
 
 instance (Storable a, FromStats a r) => Resultable (StoredStats a) r where
   r _ xs = func (Proxy :: Proxy a) (V.fromList xs)
+
+-- From Statistics.Sample
 
 data Mean
 instance FromStats Mean Double where func _ = Stats.mean
@@ -87,3 +90,18 @@ instance FromStats FastVarianceUnbiased Double where
 data FastStdDev
 instance FromStats FastStdDev Double where
   func _ = Stats.fastStdDev
+
+-- From Statistics.Quantile
+
+-- Helpers
+
+type Percentile k = WeightedAvg k 100
+type Median = Percentile 50
+
+data WeightedAvg :: Nat -> Nat -> *
+instance (KnownNat k, KnownNat q)
+         => FromStats (WeightedAvg k q) Double where
+  func _ = Stats.weightedAvg k q
+    where
+      k  = fromInteger $ natVal (Proxy :: Proxy k)
+      q  = fromInteger $ natVal (Proxy :: Proxy q)

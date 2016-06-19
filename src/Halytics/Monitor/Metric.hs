@@ -44,29 +44,6 @@ instance Resultable Max String where
       naught = "No maximum found"
       res = r (Proxy :: Proxy Max) xs :: Maybe Double
 
-data Percentile :: Nat -> *
-
-instance Storable (Percentile n) where
-  type S (Percentile n) = [Double]
-  u' _ = flip (:)
-  g _ = []
-
-instance (KnownNat n) => Resultable (Percentile n) (Maybe Double) where
-  r _ xs = xs' `atMay` index
-    where
-      index = l * n `div` 100
-      n = fromInteger $ natVal (Proxy :: Proxy n) :: Int
-      l = length xs
-      xs' = sort xs
-
-instance (KnownNat n) => Resultable (Percentile n) String where
-  r _ xs = maybe naught f res
-    where
-      res = r (Proxy :: Proxy (Percentile n)) xs :: (Maybe Double)
-      naught = "No " ++ show n ++ "th percentile available"
-      f perc = show n ++ "th percentile: " ++ show perc
-      n = fromInteger $ natVal (Proxy :: Proxy n) :: Int
-
 -- Combinators
 
 data Every :: Nat -> * -> *

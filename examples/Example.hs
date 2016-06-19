@@ -17,7 +17,6 @@ type ServerID = Int
 
 type Benchmarker =
   (N '[ L Max
-      , L (Percentile 95)
       , L (Max |^ PeriodOf 6)
       , L (Max |^ Every 6)
       , N '[ L Max
@@ -32,9 +31,7 @@ flop :: IO ()
 flop = do
     ms' <- foldM (\mo _ -> notify mo <$> performARequest) m0 [1.. 1000]
     ms'^._1 & (putStrLn . result)
-    ms'^._2 & (putStrLn . result)
-    ms'^._4 & (putStrLn . result)
-    ms'^._5._2 & (putStrLn . result)
+    ms'^._4._2 & (putStrLn . result)
   where
     m0 = g' :: Monitor Benchmarker
 
