@@ -10,38 +10,14 @@
 
 module Halytics.Monitor.Metric where
 
-import           Control.Monad.ST
 import           Data.List
 import           Data.List.Split             (chunksOf)
 import           Data.Proxy
 import           GHC.TypeLits
 import           Safe
-import           Statistics.Sample           (mean)
 
 import           Halytics.Monitor.Internal
 
-import qualified Data.Vector.Unboxed         as V
-import qualified Data.Vector.Unboxed.Mutable as MV
-
-newtype StoredStats a = StoredStats a
-
-class FromStats a r where
-  func :: Proxy a -> V.Vector Double -> r
-
-instance Storable (StoredStats a) where
-  type S (StoredStats a) = [Double]
-  u' _ = flip (:)
-  g _ = []
-
-instance (Storable a, FromStats a r) => Resultable (StoredStats a) r where
-  r _ xs = func (Proxy :: Proxy a) vec
-    where
-      vec = runST $ do
-        vec' <- MV.new l
-        mapM_ (uncurry $ MV.write vec') ixed
-        V.freeze vec'
-      l = length xs
-      ixed = zip [0, 1 ..] xs
 
 data All :: *
 
@@ -52,11 +28,6 @@ instance Storable All where
 
 instance Resultable All [Double] where
   r _ xs = xs
-
-data Mean
-
-instance FromStats Mean Double where
-  func _ = mean
 
 data Max
 

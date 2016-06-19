@@ -25,6 +25,7 @@ library
                        Halytics.Monitor.Internal
                        Halytics.Monitor.Lens
                        Halytics.Monitor.Metric
+                       Halytics.Monitor.Metric.Statistics
   ghc-options: -O2 -Wall -fwarn-tabs -funbox-strict-fields
 
 
