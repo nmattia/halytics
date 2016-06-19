@@ -19,6 +19,9 @@ library
                        split
   exposed-modules:
                        Halytics.Monitor
+                       Halytics.Monitor.Internal
+                       Halytics.Monitor.Lens
+                       Halytics.Monitor.Metric
   ghc-options: -O2 -Wall -fwarn-tabs -funbox-strict-fields
 
 

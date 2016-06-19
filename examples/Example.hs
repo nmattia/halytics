@@ -1,13 +1,13 @@
 {-# LANGUAGE DataKinds     #-}
 {-# LANGUAGE TypeOperators #-}
 
+import           Control.Lens
 import           Control.Monad       (foldM, replicateM_, void)
-import Control.Lens
 import           Data.Proxy
+import           Halytics.Monitor
 import           Server              (Server (..), fastSum, request, slowSum)
 import           Statistics.Sample   (Sample)
 import           System.Random       (randomRIO)
-import           Halytics.Monitor
 
 import qualified Statistics.Quantile as Quant
 import qualified Statistics.Sample   as Stats
