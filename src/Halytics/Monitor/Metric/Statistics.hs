@@ -95,7 +95,8 @@ instance FromStats FastStdDev Double where
 
 -- Helpers
 
-type Percentile k = WeightedAvg k 100
+type Quantile k q = WeightedAvg k q
+type Percentile k = Quantile k 100
 type Median = Percentile 50
 
 data WeightedAvg :: Nat -> Nat -> *
