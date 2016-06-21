@@ -21,7 +21,11 @@ type family (|^) (sub :: *) (over :: * -> *) :: * where
 class Generate t where
   g' :: Monitor t
 
-instance (Storable t) => Generate ('L t) where
+class Default t where
+  g :: Proxy t -> S t
+  {-g :: Proxy t -> S t-}
+
+instance (Default t, Storable t) => Generate ('L t) where
   g' = Single (g (Proxy :: Proxy t))
 
 instance {-# OVERLAPPING #-} (Generate t) => Generate ('N '[t]) where
@@ -37,7 +41,7 @@ class Storable t where
   type S t
   u :: Monitor ('L t) -> Double -> Monitor ('L t)
   u' :: Proxy t -> S t -> Double -> S t
-  g :: Proxy t -> S t
+  {-g :: Proxy t -> S t-}
   u (Single s) x = Single $ u' (Proxy :: Proxy t) s x
 
 result' :: (Resultable t r) => Proxy t -> Monitor ('L t) -> r

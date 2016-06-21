@@ -23,6 +23,8 @@ class FromStats a r where
 instance Storable (StoredStats a) where
   type S (StoredStats a) = [Double]
   u' _ = flip (:)
+
+instance Default (StoredStats a) where
   g _ = []
 
 instance (Storable a, FromStats a r) => Resultable (StoredStats a) r where
