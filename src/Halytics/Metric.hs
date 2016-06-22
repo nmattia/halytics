@@ -1,4 +1,5 @@
 {-# LANGUAGE EmptyDataDecls        #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Halytics.Metric where
 
@@ -24,7 +25,7 @@ data Max
 
 instance Storable Max where
   type S Max = Maybe Double
-  u' _ (Just x) x' = Just $ max x x'
+  u' _ (Just !x) x' = Just $ max x x'
   u' _ Nothing x' = Just x'
 
 instance Default Max where
@@ -43,7 +44,7 @@ data Min
 
 instance Storable Min where
   type S Min = Maybe Double
-  u' _ (Just x) x' = Just $ min x x'
+  u' _ (Just !x) x' = Just $ min x x'
   u' _ Nothing x' = Just x'
 
 instance Default Min where
