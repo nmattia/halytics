@@ -46,7 +46,7 @@ main = do
     ms <- foldM (\mo _ -> notify mo <$> performARequest) m0 [1.. 1000]
     ms^._1 & (putStrLn . result)
     ms^._4._2 & (putStrLn . result)
-    ms^._5 & (putStrLn . (\ok -> if ok then "yeah!" else "boo") . result)
+    ms^._5 & (putStrLn . (\ok -> if ok then "Passed!" else "Failed :(") . result)
   where
     m0 = g'&_5 %@> MySLA 100.0 :: Monitor Benchmarker
 

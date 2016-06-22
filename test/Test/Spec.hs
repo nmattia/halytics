@@ -7,6 +7,7 @@ module Main (main) where
 
 import Control.Lens
 import Halytics.Monitor
+import Halytics.Metric
 import Test.Tasty
 import Test.Tasty.HUnit (testCase, (@=?))
 

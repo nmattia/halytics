@@ -7,7 +7,6 @@ import Data.List.Split           (chunksOf)
 import Data.Proxy
 import GHC.TypeLits
 import Halytics.Monitor.Internal
-import Safe
 
 data All :: *
 
@@ -24,20 +23,40 @@ instance Resultable All [Double] where
 data Max
 
 instance Storable Max where
-  type S Max = [Double]
-  u' _ = flip (:)
+  type S Max = Maybe Double
+  u' _ (Just x) x' = Just $ max x x'
+  u' _ Nothing x' = Just x'
 
 instance Default Max where
-  g _ = []
+  g _ = Nothing
 
 instance Resultable Max (Maybe Double) where
-  r _ = maximumMay
+  r _ x = x
 
 instance Resultable Max String where
   r _  xs = maybe naught (\x -> "Max: " ++ show x) res
     where
       naught = "No maximum found"
       res = r (Proxy :: Proxy Max) xs :: Maybe Double
+
+data Min
+
+instance Storable Min where
+  type S Min = Maybe Double
+  u' _ (Just x) x' = Just $ min x x'
+  u' _ Nothing x' = Just x'
+
+instance Default Min where
+  g _ = Nothing
+
+instance Resultable Min (Maybe Double) where
+  r _ x = x
+
+instance Resultable Min String where
+  r _  xs = maybe naught (\x -> "Min: " ++ show x) res
+    where
+      naught = "No minimum found"
+      res = r (Proxy :: Proxy Min) xs :: Maybe Double
 
 -- Combinators
 
