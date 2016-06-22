@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -20,6 +21,7 @@
 
 module Halytics.Monitor.Internal where
 
+import Data.List  (foldl')
 import Data.Proxy (Proxy (..))
 
 -------------------------------------------------------------------------------
@@ -81,8 +83,21 @@ class Collect t where
   -- acting on the leaf of a @Monitor@ @Tree@.
   collectFor :: Monitor ('L t) -> Double -> Monitor ('L t)
 
-  collectFor (Single s) x = Single $ collect (Proxy :: Proxy t) s x
+  -- | Collect a list of values for a specific monitored type (batch
+  -- collecting).
+  collectMany :: Proxy t -> S t -> [Double] -> S t
+
+  -- | Collect a list of values for a specific monitor (batch collecting).
+  collectManyFor :: Monitor ('L t) -> [Double] -> Monitor ('L t)
+
   collect _ s x = case collectFor (Single s :: Monitor ('L t)) x of Single s' -> s'
+  collectFor (Single s) x = Single $ collect (Proxy :: Proxy t) s x
+  collectMany p = foldl' f
+    where
+      f !s !x = collect p s x
+  collectManyFor = foldl' f
+    where
+      f m !x = collectFor m x
 
 
 -- | The class of types that have a constant value for their initial inner
