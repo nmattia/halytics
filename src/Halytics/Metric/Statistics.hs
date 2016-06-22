@@ -1,12 +1,20 @@
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+
 module Halytics.Metric.Statistics where
 
 import           Data.Proxy
 import           GHC.TypeLits
 import           Halytics.Monitor.Internal
 
-import qualified Data.Vector.Unboxed as V
-import qualified Statistics.Quantile as Stats
-import qualified Statistics.Sample   as Stats
+import qualified Data.Vector.Unboxed       as V
+import qualified Statistics.Quantile       as Stats
+import qualified Statistics.Sample         as Stats
 
 newtype StoredStats a = StoredStats a
 

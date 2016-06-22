@@ -1,13 +1,13 @@
-{-# LANGUAGE DataKinds     #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 
 import           Control.Lens
-import           Control.Monad       (foldM, replicateM_, void, unless)
+import           Control.Monad       (foldM, replicateM_, unless, void)
 import           Data.Proxy
-import           Halytics.Monitor
 import           Halytics.Metric
+import           Halytics.Monitor
 import           Halytics.Time
 import           Server              (Server (..), fastSum, request, slowSum)
 import           Statistics.Sample   (Sample)
@@ -48,7 +48,7 @@ main = do
     ms^._4._2 & (putStrLn . result)
     ms^._5 & (putStrLn . (\ok -> if ok then "Passed!" else "Failed :(") . result)
   where
-    m0 = generate&_5 %@> MySLA 100.0 :: Monitor Benchmarker
+    m0 = generate&_5 %<~ MySLA 100.0 :: Monitor Benchmarker
 
 -- Time measuring
 

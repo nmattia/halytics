@@ -1,6 +1,6 @@
 module Halytics.Time where
 
-import qualified System.Clock        as Clk
+import qualified System.Clock as Clk
 
 timeSpecAsMicroSecs :: Clk.TimeSpec -> Double
 timeSpecAsMicroSecs t = fromIntegral (Clk.timeSpecAsNanoSecs t)  / 1e3

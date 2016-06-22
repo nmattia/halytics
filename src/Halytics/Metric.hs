@@ -1,5 +1,12 @@
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE EmptyDataDecls        #-}
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module Halytics.Metric where
 

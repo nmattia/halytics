@@ -1,6 +1,6 @@
 module Server where
 
-import Control.DeepSeq (force)
+import Control.DeepSeq   (force)
 import Control.Exception (evaluate)
 
 data Server = Server (Int -> Int)
