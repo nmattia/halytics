@@ -18,18 +18,19 @@ import qualified System.Clock        as Clk
 
 type ServerID = Int
 
-data MySLA
+data MySLA = MySLA Double
+
+instance Init MySLA where
+  g'' (MySLA x) = (x, [])
+
 instance Resultable MySLA Bool where
-  r _ xs = maybe False (100.0 >=) res
+  r _ (x, xs) = maybe False (x >=) res
     where
       res = r (Proxy :: Proxy Max) xs :: Maybe Double
 
 instance Storable MySLA where
-  type S MySLA = [Double]
-  u' _ = u' (Proxy :: Proxy Max)
-
-instance Default MySLA where
-  g _ = g (Proxy :: Proxy Max)
+  type S MySLA = (Double, [Double])
+  u' _ (m, xs) x = (m, u' (Proxy :: Proxy Max) xs x)
 
 type Benchmarker =
   (N '[ L Max
@@ -50,7 +51,7 @@ main = do
 sla :: IO ()
 sla = do
   ms <- foldM (\mo _ -> notify mo <$> performARequest)
-              (g' :: Monitor ('L MySLA))
+              (monitorWith (MySLA 100.0))
               [1.. 1000]
   unless (result ms) $ error "SLA failed"
 
