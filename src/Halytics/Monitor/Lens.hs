@@ -9,10 +9,20 @@
 
 module Halytics.Monitor.Lens where
 
-import Control.Lens              (lens)
+import Control.Lens              (ASetter, lens, over)
 import Control.Lens.Tuple        (Field1, Field2, Field3, Field4, Field5,
                                   Field6, _1, _2, _3, _4, _5, _6)
-import Halytics.Monitor.Internal (Monitor (..), Tree (..))
+import Halytics.Monitor.Internal (Init, Monitor (..), Placeholder,
+                                  Storable (..), Tree (..), fromPlaceholder)
+
+infixr 4 %@>
+
+(%@>) :: (Storable t', Init t')
+      => ASetter s t (Monitor ('L Placeholder)) (Monitor ('L t'))
+      -> t'
+      -> s
+      -> t
+(%@>) l x = over l (`fromPlaceholder` x )
 
 instance Field1 (Monitor ('N (t ': ts)))
                 (Monitor ('N (t' ': ts)))
@@ -105,6 +115,7 @@ replace6 :: Monitor ('N (t0 ': t1 ': t2 ': t3 ': t4 ': t5 ': ts))
          -> Monitor ('N (t0 ': t1 ': t2 ': t3 ': t4 ': t5' ': ts))
 replace6 (m0 :> ms) m = m0 :> replace5 ms m
 
+-- TODO: remove boilerplate
 {-data Z-}
 {-data S a-}
 
@@ -133,4 +144,3 @@ replace6 (m0 :> ms) m = m0 :> replace5 ms m
 {-pull2' (m :> ms) = undefined-}
 {-pullN :: (t ~ TypeAt n ts) => Proxy n -> Monitor ('N ts) -> Monitor t-}
 {-pullN (_ :: Proxy N1) _ = undefined-}
-

@@ -38,23 +38,17 @@ type Benchmarker =
       , L (Max |^ PeriodOf 6)
       , L (Max |^ Every 6)
       , N '[ L Max
-           , L (Max |^ Last 10)]])
+           , L (Max |^ Last 10)]
+      , L MySLA ])
 
 main :: IO ()
 main = do
-    sla
     ms <- foldM (\mo _ -> notify mo <$> performARequest) m0 [1.. 1000]
     ms^._1 & (putStrLn . result)
     ms^._4._2 & (putStrLn . result)
+    ms^._5 & (putStrLn . (\ok -> if ok then "yeah!" else "boo") . result)
   where
-    m0 = g' :: Monitor Benchmarker
-
-sla :: IO ()
-sla = do
-  ms <- foldM (\mo _ -> notify mo <$> performARequest)
-              (monitorWith (MySLA 100.0))
-              [1.. 1000]
-  unless (result ms) $ error "SLA failed"
+    m0 = g'&_5 %@> MySLA 100.0 :: Monitor Benchmarker
 
 -- Time measuring
 

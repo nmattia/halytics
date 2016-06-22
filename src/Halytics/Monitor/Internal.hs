@@ -5,6 +5,12 @@ module Halytics.Monitor.Internal where
 import Data.Proxy (Proxy(..))
 
 data Placeholder
+instance Storable Placeholder where
+  type S Placeholder = ()
+  u' _ _ _ = ()
+
+instance Default Placeholder where
+  g _ = ()
 
 data Tree a = L a | N [Tree a]
 
