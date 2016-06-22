@@ -2,8 +2,8 @@
 
 module Halytics.Monitor (module X) where
 
-import Halytics.Monitor.Internal as X (Default (..), Init (..), Monitor,
-                                       Resultable (..), Storable (..),
+import Halytics.Monitor.Internal as X (Default (..), Initialize (..), Monitor,
+                                       Resultable (..), Collect (..),
                                        Tree (..), type (|^), fromPlaceholder,
-                                       g', monitorWith, notify, result)
+                                       monitorWith, generate, notify, result)
 import Halytics.Monitor.Lens     as X

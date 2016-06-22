@@ -21,17 +21,17 @@ type ServerID = Int
 
 data MySLA = MySLA Double
 
-instance Init MySLA where
-  g'' (MySLA x) = (x, [])
+instance Initialize MySLA where
+  initialize (MySLA x) = (x, Nothing)
 
 instance Resultable MySLA Bool where
   r _ (x, xs) = maybe False (x >=) res
     where
       res = r (Proxy :: Proxy Max) xs :: Maybe Double
 
-instance Storable MySLA where
-  type S MySLA = (Double, [Double])
-  u' _ (m, xs) x = (m, u' (Proxy :: Proxy Max) xs x)
+instance Collect MySLA where
+  type S MySLA = (Double, Maybe Double)
+  collect _ (m, xs) x = (m, collect (Proxy :: Proxy Max) xs x)
 
 type Benchmarker =
   (N '[ L Max
@@ -48,7 +48,7 @@ main = do
     ms^._4._2 & (putStrLn . result)
     ms^._5 & (putStrLn . (\ok -> if ok then "Passed!" else "Failed :(") . result)
   where
-    m0 = g'&_5 %@> MySLA 100.0 :: Monitor Benchmarker
+    m0 = generate&_5 %@> MySLA 100.0 :: Monitor Benchmarker
 
 -- Time measuring
 

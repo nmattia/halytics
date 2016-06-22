@@ -12,12 +12,12 @@ module Halytics.Monitor.Lens where
 import Control.Lens              (ASetter, lens, over)
 import Control.Lens.Tuple        (Field1, Field2, Field3, Field4, Field5,
                                   Field6, _1, _2, _3, _4, _5, _6)
-import Halytics.Monitor.Internal (Init, Monitor (..), Placeholder,
-                                  Storable (..), Tree (..), fromPlaceholder)
+import Halytics.Monitor.Internal (Initialize, Monitor (..), Placeholder,
+                                  Collect (..), Tree (..), fromPlaceholder)
 
 infixr 4 %@>
 
-(%@>) :: (Storable t', Init t')
+(%@>) :: (Collect t', Initialize t')
       => ASetter s t (Monitor ('L Placeholder)) (Monitor ('L t'))
       -> t'
       -> s

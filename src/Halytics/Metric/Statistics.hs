@@ -13,14 +13,14 @@ newtype StoredStats a = StoredStats a
 class FromStats a r where
   func :: Proxy a -> V.Vector Double -> r
 
-instance Storable (StoredStats a) where
+instance Collect (StoredStats a) where
   type S (StoredStats a) = [Double]
-  u' _ = flip (:)
+  collect _ = flip (:)
 
 instance Default (StoredStats a) where
-  g _ = []
+  initial _ = []
 
-instance (Storable a, FromStats a r) => Resultable (StoredStats a) r where
+instance (Collect a, FromStats a r) => Resultable (StoredStats a) r where
   r _ xs = func (Proxy :: Proxy a) (V.fromList xs)
 
 -- From Statistics.Sample
