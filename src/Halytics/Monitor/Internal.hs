@@ -2,7 +2,9 @@
 
 module Halytics.Monitor.Internal where
 
-import Data.Proxy
+import Data.Proxy (Proxy(..))
+
+data Placeholder
 
 data Tree a = L a | N [Tree a]
 
@@ -46,6 +48,12 @@ result' p (Single s) = r p s
 
 result :: (Resultable t r) => Monitor ('L t) -> r
 result = result' (Proxy :: Proxy t)
+
+fromPlaceholder :: (Init t, Storable t)
+                => Monitor ('L Placeholder)
+                -> t
+                -> Monitor ('L t)
+fromPlaceholder _ = monitorWith
 
 notify :: Monitor x -> Double -> Monitor x
 notify (Multi m) x = Multi $ notify m x

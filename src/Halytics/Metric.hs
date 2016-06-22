@@ -1,6 +1,6 @@
 {-# LANGUAGE EmptyDataDecls        #-}
 
-module Halytics.Monitor.Metric where
+module Halytics.Metric where
 
 import Data.List
 import Data.List.Split           (chunksOf)
@@ -8,7 +8,6 @@ import Data.Proxy
 import GHC.TypeLits
 import Halytics.Monitor.Internal
 import Safe
-
 
 data All :: *
 

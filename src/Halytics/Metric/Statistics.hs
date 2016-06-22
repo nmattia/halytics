@@ -1,4 +1,4 @@
-module Halytics.Monitor.Metric.Statistics where
+module Halytics.Metric.Statistics where
 
 import           Data.Proxy
 import           GHC.TypeLits

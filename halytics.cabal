@@ -33,11 +33,11 @@ library
                        statistics,
                        vector
   exposed-modules:
+                       Halytics.Metric
+                       Halytics.Metric.Statistics
                        Halytics.Monitor
                        Halytics.Monitor.Internal
                        Halytics.Monitor.Lens
-                       Halytics.Monitor.Metric
-                       Halytics.Monitor.Metric.Statistics
                        Halytics.Time
   ghc-options: -O2 -Wall -fwarn-tabs -funbox-strict-fields
 

@@ -7,6 +7,7 @@ import           Control.Lens
 import           Control.Monad       (foldM, replicateM_, void, unless)
 import           Data.Proxy
 import           Halytics.Monitor
+import           Halytics.Metric
 import           Halytics.Time
 import           Server              (Server (..), fastSum, request, slowSum)
 import           Statistics.Sample   (Sample)
