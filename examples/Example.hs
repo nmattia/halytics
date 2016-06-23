@@ -1,35 +1,38 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 
 import           Control.Lens
-import           Control.Monad       (foldM, replicateM_, unless, void)
+import           Control.Monad              (foldM, replicateM_, unless, void)
 import           Data.Proxy
 import           Halytics.Metric
 import           Halytics.Metric.Statistics
 import           Halytics.Monitor
 import           Halytics.Time
-import           Network.Wreq        (get)
-import           Server              (Server (..), fastSum, request, slowSum)
-import           Statistics.Sample   (Sample)
-import           System.Environment  (getArgs)
-import           System.Random       (randomRIO)
+import           Network.Wreq               (get)
+import           Server                     (Server (..), fastSum, request,
+                                             slowSum)
+import           Statistics.Sample          (Sample)
+import           System.Environment         (getArgs)
+import           System.Random              (randomRIO)
 
-import qualified Statistics.Quantile as Quant
-import qualified Statistics.Sample   as Stats
+import qualified Statistics.Quantile        as Quant
+import qualified Statistics.Sample          as Stats
 
 type ServerID = Int
 
 main :: IO ()
 main = getArgs >>= mapM_ (\case
   "max" -> simpleMax
-  "stats" -> stats 4 ""
+  "stats" -> stats 10 "http://haskell.org"
+  "stats-str" -> stats' 10 "http://haskell.org"
   "sla" -> sla
   str -> putStrLn $ "Unknown: " ++ str)
 
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Basic usage
 
 simpleMax :: IO ()
@@ -37,8 +40,7 @@ simpleMax =
   let m' = collectManyFor (generate :: Monitor ('L Max)) [1, 42.0, 341, 3.1415]
   in putStrLn $ result m'
 
-
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Statistics
 
 type Stats =
@@ -48,13 +50,30 @@ type Stats =
       , L Max ])
 
 stats :: Int -> String -> IO ()
-stats n url = replicateM_ n $ timeIO (get url)
+stats n url = do
+    m <- monitor n url
+    m^._1&result & (\(med :: Double) -> putStrLn $ "Median: " ++ show med)
+    m^._2&result & (\(p95 :: Double) -> putStrLn $ "P95: " ++ show p95)
+    m^._3&result & (\(p99 :: Double) -> putStrLn $ "P99: " ++ show p99)
+    m^._4&result & (\(mx :: Maybe Double) -> putStrLn $ "Max: " ++ show mx)
 
-monitor :: IO (Monitor Stats)
-monitor = go generate 100
+
+stats' :: Int -> String -> IO ()
+stats' n url = do
+    m <- monitor n url
+    putStrLn $ m^._1&result
+    putStrLn $ m^._2&result
+    putStrLn $ m^._3&result
+    putStrLn $ m^._4&result
+
+monitor :: Int -> String -> IO (Monitor Stats)
+monitor n url = go generate n
   where go m 0 = return m
-        go m n = do {m' <- (notify m . snd) <$> timeIO (get "http://google.com"); go m' (n-1)}
+        go m n = do {m' <- (notify m . snd) <$> timeIO (get url); go m' (n-1)}
 
+
+--------------------------------------------------------------------------------
+-- SLA
 
 data MySLA = MySLA Double
 
