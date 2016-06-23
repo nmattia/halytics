@@ -16,6 +16,11 @@ import Data.Proxy
 import GHC.TypeLits
 import Halytics.Monitor.Internal
 
+-- |
+-- >>> :set -XDataKinds
+-- >>> let monitor = generate :: Monitor ('L All)
+-- >>> result (collectManyFor monitor [1.0,2.0,3.0]) :: [Double]
+-- [1.0,2.0,3.0]
 data All :: *
 
 instance Collect All where
@@ -26,8 +31,18 @@ instance Default All where
   initial _ = []
 
 instance Resultable All [Double] where
-  r _ xs = xs
+  r _ = reverse
 
+-- |
+-- >>> :set -XDataKinds
+-- >>> let monitor = generate :: Monitor ('L Max)
+-- >>> result (collectManyFor monitor [1.0,2.0,3.0]) :: Maybe Double
+-- Just 3.0
+--
+-- >>> :set -XDataKinds
+-- >>> let monitor = generate :: Monitor ('L Max)
+-- >>> result (collectManyFor monitor []) :: Maybe Double
+-- Nothing
 data Max
 
 instance Collect Max where
@@ -47,6 +62,16 @@ instance Resultable Max String where
       naught = "No maximum found"
       res = r (Proxy :: Proxy Max) xs :: Maybe Double
 
+-- |
+-- >>> :set -XDataKinds
+-- >>> let monitor = generate :: Monitor ('L Min)
+-- >>> result (collectManyFor monitor [1.0,2.0,3.0]) :: Maybe Double
+-- Just 1.0
+--
+-- >>> :set -XDataKinds
+-- >>> let monitor = generate :: Monitor ('L Min)
+-- >>> result (collectManyFor monitor []) :: Maybe Double
+-- Nothing
 data Min
 
 instance Collect Min where
@@ -68,15 +93,22 @@ instance Resultable Min String where
 
 -- Combinators
 
+-- |
+-- >>> :set -XDataKinds
+-- >>> :set -XTypeOperators
+-- >>> let monitor = generate :: Monitor ('L (All |^ Every 2))
+-- >>> result (collectManyFor monitor [1.0,2.0,3.0,2.0,1.0]) :: [Double]
+-- [1.0,3.0,1.0]
 data Every :: Nat -> * -> *
 
+-- TODO: Use pattern guards instead
 instance (Collect s, KnownNat n) => Collect (Every n s) where
   type S (Every n s) = (Integer, S s)
-  collect _ (0, s) x = (natVal (Proxy :: Proxy n), collect (Proxy :: Proxy s) s x)
+  collect _ (1, s) x = (natVal (Proxy :: Proxy n), collect (Proxy :: Proxy s) s x)
   collect _ (n, s) _ = (n-1, s)
 
 instance (KnownNat n, Default s) => Default (Every n s) where
-  initial _ = (natVal (Proxy :: Proxy n), initial (Proxy :: Proxy s))
+  initial _ = (1, initial (Proxy :: Proxy s))
 
 instance (Resultable t r) => Resultable (Every n t) r where
   r _ (_, s) = r (Proxy :: Proxy t) s
