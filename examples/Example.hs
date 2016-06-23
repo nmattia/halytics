@@ -37,18 +37,20 @@ main = getArgs >>= mapM_ (\case
 
 simpleMax :: IO ()
 simpleMax =
-  let m' = collectManyFor (generate :: Monitor ('L Max)) [1, 42.0, 341, 3.1415]
-  in putStrLn $ result m'
+  let m = collectManyFor (generate :: Monitor ('L Max)) [1, 42.0, 341, 3.1415]
+  in putStrLn $ result m
 
 --------------------------------------------------------------------------------
 -- Statistics
 
-type Stats =
+type SomeMetrics =
   (N '[ L Median
       , L (Percentile 95)
       , L (Percentile 99)
       , L Max ])
 
+-- |
+--
 stats :: Int -> String -> IO ()
 stats n url = do
     m <- monitor n url
@@ -58,6 +60,8 @@ stats n url = do
     m^._4&result & (\(mx :: Maybe Double) -> putStrLn $ "Max: " ++ show mx)
 
 
+-- |
+--
 stats' :: Int -> String -> IO ()
 stats' n url = do
     m <- monitor n url
@@ -66,11 +70,11 @@ stats' n url = do
     putStrLn $ m^._3&result
     putStrLn $ m^._4&result
 
-monitor :: Int -> String -> IO (Monitor Stats)
-monitor n url = go generate n
-  where go m 0 = return m
-        go m n = do {m' <- (notify m . snd) <$> timeIO (get url); go m' (n-1)}
-
+monitor :: Int -> String -> IO (Monitor SomeMetrics)
+monitor n url = go n generate
+  where go 0 m = return m
+        go n m = notify m <$> timeIO_ (get url) >>= go (n-1)
+        timeIO_ io = snd <$> timeIO io
 
 --------------------------------------------------------------------------------
 -- SLA
