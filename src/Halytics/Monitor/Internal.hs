@@ -148,7 +148,6 @@ result = resultWithProxy (Proxy :: Proxy t)
 -- function doesn't exist. The following doesn't work:
 --
 -- @result (Single s) = r (Proxy :: Proxy t) s@
---
 resultWithProxy :: (Resultable t r) => Proxy t -> Monitor ('L t) -> r
 resultWithProxy p (Single s) = r p s
 

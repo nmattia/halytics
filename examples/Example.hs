@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -7,17 +8,53 @@ import           Control.Lens
 import           Control.Monad       (foldM, replicateM_, unless, void)
 import           Data.Proxy
 import           Halytics.Metric
+import           Halytics.Metric.Statistics
 import           Halytics.Monitor
 import           Halytics.Time
+import           Network.Wreq        (get)
 import           Server              (Server (..), fastSum, request, slowSum)
 import           Statistics.Sample   (Sample)
+import           System.Environment  (getArgs)
 import           System.Random       (randomRIO)
 
 import qualified Statistics.Quantile as Quant
 import qualified Statistics.Sample   as Stats
-import qualified System.Clock        as Clk
 
 type ServerID = Int
+
+main :: IO ()
+main = getArgs >>= mapM_ (\case
+  "max" -> simpleMax
+  "stats" -> stats 4 ""
+  "sla" -> sla
+  str -> putStrLn $ "Unknown: " ++ str)
+
+-------------------------------------------------------------------------------
+-- Basic usage
+
+simpleMax :: IO ()
+simpleMax =
+  let m' = collectManyFor (generate :: Monitor ('L Max)) [1, 42.0, 341, 3.1415]
+  in putStrLn $ result m'
+
+
+-------------------------------------------------------------------------------
+-- Statistics
+
+type Stats =
+  (N '[ L Median
+      , L (Percentile 95)
+      , L (Percentile 99)
+      , L Max ])
+
+stats :: Int -> String -> IO ()
+stats n url = replicateM_ n $ timeIO (get url)
+
+monitor :: IO (Monitor Stats)
+monitor = go generate 100
+  where go m 0 = return m
+        go m n = do {m' <- (notify m . snd) <$> timeIO (get "http://google.com"); go m' (n-1)}
+
 
 data MySLA = MySLA Double
 
@@ -41,8 +78,8 @@ type Benchmarker =
            , L (Max |^ Last 10)]
       , L MySLA ])
 
-main :: IO ()
-main = do
+sla :: IO ()
+sla = do
     ms <- foldM (\mo _ -> notify mo <$> performARequest) m0 [1.. 1000]
     ms^._1 & (putStrLn . result)
     ms^._4._2 & (putStrLn . result)
