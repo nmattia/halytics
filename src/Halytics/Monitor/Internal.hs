@@ -173,6 +173,11 @@ notify (Multi m) x = Multi $ notify m x
 notify m@(Single _) x = collectFor m x
 notify (m :> ms) x = notify m x :> notify ms x
 
+notifyMany :: Monitor x -> [Double] -> Monitor x
+notifyMany (Multi m) xs = Multi $ notifyMany m xs
+notifyMany m@(Single _) xs = collectManyFor m xs
+notifyMany (m :> ms) xs = notifyMany m xs :> notifyMany ms xs
+
 -------------------------------------------------------------------------------
 -- Placeholder
 

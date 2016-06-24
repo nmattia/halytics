@@ -28,6 +28,7 @@ library
                        Halytics.Monitor.Internal
                        Halytics.Monitor.Lens
                        Halytics.Time
+                       Halytics.Tutorial
   ghc-options:
                 -O2
                 -Wall

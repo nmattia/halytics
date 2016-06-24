@@ -38,7 +38,7 @@ main = getArgs >>= mapM_ (\case
 
 simpleMax :: IO ()
 simpleMax =
-  let m = collectManyFor (generate :: Monitor ('L Max)) [1, 42.0, 341, 3.1415]
+  let m = notifyMany (generate :: Monitor ('L Max)) [1, 42.0, 341, 3.1415]
   in putStrLn $ result m
 
 --------------------------------------------------------------------------------

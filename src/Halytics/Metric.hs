@@ -59,6 +59,10 @@ instance Default All where
 instance Resultable All [Double] where
   r _ = reverse
 
+instance Resultable All String where
+  r _ [] = "Collected: (none)"
+  r _ xs = "Collected: " ++ intercalate ", " (show <$> xs)
+
 {-|
 'Max' will result in the largest entry collected so far. If no entry was
 collected so far, results in 'Nothing'. If any entry was collected, results

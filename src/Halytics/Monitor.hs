@@ -7,5 +7,5 @@ import Halytics.Monitor.Internal as X (Collect (..), Default (..),
                                        Resultable (..), Tree (..), type (|^),
                                        collectMany, collectManyFor,
                                        fromPlaceholder, generate, monitorWith,
-                                       notify, result)
+                                       notify, notifyMany, result)
 import Halytics.Monitor.Lens     as X
