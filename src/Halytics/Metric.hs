@@ -114,6 +114,12 @@ instance (KnownNat n, Default s) => Default (Every n s) where
 instance (Resultable t r) => Resultable (Every n t) r where
   r _ (_, s) = r (Proxy :: Proxy t) s
 
+-- |
+-- >>> :set -XDataKinds
+-- >>> :set -XTypeOperators
+-- >>> let monitor = generate :: Monitor ('L (All |^ Last 2))
+-- >>> result (collectManyFor monitor [1.0,2.0,3.0,2.0,1.0]) :: [Double]
+-- [2.0,1.0]
 data Last :: Nat -> * -> *
 
 instance (KnownNat n) => Collect (Last n s) where
@@ -128,8 +134,16 @@ instance Default (Last n s) where
 instance (Default t, Collect t, Resultable t r) => Resultable (Last n t) r where
   r _ xs = r (Proxy :: Proxy t) s
     where
-      s = foldl' (collect (Proxy :: Proxy t)) (initial (Proxy :: Proxy t)) xs
+      s = foldl' (collect (Proxy :: Proxy t))
+                 (initial (Proxy :: Proxy t))
+                 $ reverse xs
 
+-- |
+-- >>> :set -XDataKinds
+-- >>> :set -XTypeOperators
+-- >>> let monitor = generate :: Monitor ('L (All |^ PeriodOf 2))
+-- >>> result (collectManyFor monitor [1.0,2.0,3.0,2.0,1.0]) :: [[Double]]
+-- [[1.0,2.0],[3.0,2.0],[1.0]]
 data PeriodOf :: Nat -> * -> *
 
 instance Collect (PeriodOf n s) where

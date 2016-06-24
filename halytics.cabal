@@ -28,9 +28,12 @@ library
                        Halytics.Monitor.Internal
                        Halytics.Monitor.Lens
                        Halytics.Time
-  ghc-options: -O2 -Wall -fwarn-tabs -funbox-strict-fields
-
-
+  ghc-options:
+                -O2
+                -Wall
+                -fwarn-tabs
+                -funbox-strict-fields
+                -Werror
 
 test-suite halytics-test
   type:       exitcode-stdio-1.0
@@ -58,4 +61,3 @@ test-suite format
   main-is:            Test/Format.hs
   build-depends:      base, Glob
   hs-source-dirs:     test
-
