@@ -8,6 +8,16 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 
+-- |
+-- Module      : Halytics.Metric
+-- Copyright   : (c) 2016 Nicolas Mattia
+-- License     : MIT
+-- Maintainer  : Nicolas Mattia <nicolas@nmattia.com>
+-- Stability   : experimental
+--
+-- ...
+
+
 module Halytics.Metric where
 
 import Data.List
@@ -16,11 +26,27 @@ import Data.Proxy
 import GHC.TypeLits
 import Halytics.Monitor.Internal
 
--- |
+-- $setup
 -- >>> :set -XDataKinds
--- >>> let monitor = generate :: Monitor ('L All)
--- >>> result (collectManyFor monitor [1.0,2.0,3.0]) :: [Double]
--- [1.0,2.0,3.0]
+-- >>> :set -XTypeOperators
+-- >>> :set -XFlexibleContexts
+-- >>> :set -XKindSignatures
+-- >>> import Safe (maximumMay, minimumMay)
+
+{-|
+
+'All' will simply give back all the entries collected. This should mostly be
+used for testing.
+
+>>> let monitor = generate :: Monitor ('L All)
+>>> result (collectManyFor monitor [1.0,2.0,3.0]) :: [Double]
+[1.0,2.0,3.0]
+
+The following property should hold:
+
+prop> result (collectManyFor (generate :: Monitor ('L All)) xs) == xs
+
+-}
 data All :: *
 
 instance Collect All where
@@ -33,16 +59,22 @@ instance Default All where
 instance Resultable All [Double] where
   r _ = reverse
 
--- |
--- >>> :set -XDataKinds
--- >>> let monitor = generate :: Monitor ('L Max)
--- >>> result (collectManyFor monitor [1.0,2.0,3.0]) :: Maybe Double
--- Just 3.0
---
--- >>> :set -XDataKinds
--- >>> let monitor = generate :: Monitor ('L Max)
--- >>> result (collectManyFor monitor []) :: Maybe Double
--- Nothing
+{-|
+'Max' will result in the largest entry collected so far. If no entry was
+collected so far, results in 'Nothing'. If any entry was collected, results
+in 'Just' the maximum.
+
+>>> let monitor = generate :: Monitor ('L Max)
+>>> result (collectManyFor monitor [1.0,2.0,3.0]) :: Maybe Double
+Just 3.0
+>>> result (collectManyFor monitor []) :: Maybe Double
+Nothing
+
+The following property should hold:
+
+prop> result (collectManyFor (generate :: Monitor ('L Max)) xs) == maximumMay xs
+
+-}
 data Max
 
 instance Collect Max where
@@ -62,16 +94,22 @@ instance Resultable Max String where
       naught = "No maximum found"
       res = r (Proxy :: Proxy Max) xs :: Maybe Double
 
--- |
--- >>> :set -XDataKinds
--- >>> let monitor = generate :: Monitor ('L Min)
--- >>> result (collectManyFor monitor [1.0,2.0,3.0]) :: Maybe Double
--- Just 1.0
---
--- >>> :set -XDataKinds
--- >>> let monitor = generate :: Monitor ('L Min)
--- >>> result (collectManyFor monitor []) :: Maybe Double
--- Nothing
+{-|
+'Min' will result in the largest entry collected so far. If no entry was
+collected so far, results in 'Nothing'. If any entry was collected, results
+in 'Just' the maximum.
+
+>>> let monitor = generate :: Monitor ('L Min)
+>>> result (collectManyFor monitor [1.0,2.0,3.0]) :: Maybe Double
+Just 1.0
+>>> result (collectManyFor monitor []) :: Maybe Double
+Nothing
+
+The following property should hold:
+
+prop> result (collectManyFor (generate :: Monitor ('L Min)) xs) == minimumMay xs
+
+-}
 data Min
 
 instance Collect Min where
@@ -93,12 +131,16 @@ instance Resultable Min String where
 
 -- Combinators
 
--- |
--- >>> :set -XDataKinds
--- >>> :set -XTypeOperators
--- >>> let monitor = generate :: Monitor ('L (All |^ Every 2))
--- >>> result (collectManyFor monitor [1.0,2.0,3.0,2.0,1.0]) :: [Double]
--- [1.0,3.0,1.0]
+{-|
+
+'Every' will feed another metric every @n@th element collected. 'Every' will
+feed the metric the first, @n+1@ th, @2n+1@ th, ... collected elements.
+
+>>> let monitor = generate :: Monitor ('L (All |^ Every 2))
+>>> result (collectManyFor monitor [1.0,2.0,3.0,2.0,1.0]) :: [Double]
+[1.0,3.0,1.0]
+
+-}
 data Every :: Nat -> * -> *
 
 -- TODO: Use pattern guards instead
@@ -114,12 +156,15 @@ instance (KnownNat n, Default s) => Default (Every n s) where
 instance (Resultable t r) => Resultable (Every n t) r where
   r _ (_, s) = r (Proxy :: Proxy t) s
 
--- |
--- >>> :set -XDataKinds
--- >>> :set -XTypeOperators
--- >>> let monitor = generate :: Monitor ('L (All |^ Last 2))
--- >>> result (collectManyFor monitor [1.0,2.0,3.0,2.0,1.0]) :: [Double]
--- [2.0,1.0]
+{-|
+
+'Last' will feed another metric the last @n@ elements collected.
+
+>>> let monitor = generate :: Monitor ('L (All |^ Last 2))
+>>> result (collectManyFor monitor [1.0,2.0,3.0,2.0,1.0]) :: [Double]
+[2.0,1.0]
+
+-}
 data Last :: Nat -> * -> *
 
 instance (KnownNat n) => Collect (Last n s) where
@@ -138,12 +183,16 @@ instance (Default t, Collect t, Resultable t r) => Resultable (Last n t) r where
                  (initial (Proxy :: Proxy t))
                  $ reverse xs
 
--- |
--- >>> :set -XDataKinds
--- >>> :set -XTypeOperators
--- >>> let monitor = generate :: Monitor ('L (All |^ PeriodOf 2))
--- >>> result (collectManyFor monitor [1.0,2.0,3.0,2.0,1.0]) :: [[Double]]
--- [[1.0,2.0],[3.0,2.0],[1.0]]
+{-|
+
+'PeriodOf' will feed another metric with chunks of @n@ elements. 'result'
+returns the list of the results (one for each chunk).
+
+>>> let monitor = generate :: Monitor ('L (All |^ PeriodOf 2))
+>>> result (collectManyFor monitor [1.0,2.0,3.0,2.0,1.0]) :: [[Double]]
+[[1.0,2.0],[3.0,2.0],[1.0]]
+
+-}
 data PeriodOf :: Nat -> * -> *
 
 instance Collect (PeriodOf n s) where
