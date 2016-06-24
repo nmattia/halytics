@@ -104,10 +104,10 @@ type Benchmarker =
 
 sla :: IO ()
 sla = do
-    ms <- foldM (\mo _ -> notify mo <$> performARequest) m0 [1.. 1000]
-    ms^._1 & (putStrLn . result)
-    ms^._4._2 & (putStrLn . result)
-    ms^._5 & (putStrLn . bool "Failed :(" "Passed!" . result)
+    m <- foldM (\mo _ -> notify mo <$> performARequest) m0 [1.. 1000]
+    m^._1 & (putStrLn . result)
+    m^._4._2 & (putStrLn . result)
+    m^._5 & (putStrLn . bool "Failed :(" "Passed!" . result)
   where
     m0 = generate&_5 %<~ MySLA 100.0 :: Monitor Benchmarker
 
