@@ -30,7 +30,8 @@ instance Collect (StoredStats a) where
 instance Default (StoredStats a) where
   initial _ = []
 
-instance {-# OVERLAPPABLE #-} (Collect (StoredStats a), FromStats a r) => Resultable (StoredStats a) r where
+instance {-# OVERLAPPABLE #-} (Collect (StoredStats a), FromStats a r)
+         => Resultable (StoredStats a) r where
   r _ xs = func (Proxy :: Proxy a) (V.fromList xs)
 
 
@@ -91,7 +92,8 @@ instance (KnownNat k, KnownNat j)
       k  = fromInteger $ natVal (Proxy :: Proxy k)
       j  = fromInteger $ natVal (Proxy :: Proxy j)
 
-instance (KnownNat k, KnownNat j) => Resultable (CentralMoments k j) (String, String) where
+instance (KnownNat k, KnownNat j)
+         => Resultable (CentralMoments k j) (String, String) where
   r _ xs = (kStr, jStr)
     where
       kStr = show k ++ "th central moment: " ++ show kRes
@@ -101,10 +103,11 @@ instance (KnownNat k, KnownNat j) => Resultable (CentralMoments k j) (String, St
       k = fromInteger $ natVal (Proxy :: Proxy k) :: Integer
       j = fromInteger $ natVal (Proxy :: Proxy j) :: Integer
 
-instance (KnownNat k, KnownNat j) => Resultable (CentralMoments k j) String where
+instance (KnownNat k, KnownNat j)
+         => Resultable (CentralMoments k j) String where
   r _ xs = kStr ++ ", " ++ jStr
     where
-      (kStr, jStr) = r (Proxy :: Proxy (CentralMoments k j)) xs :: (String, String)
+      (kStr, jStr) = r (Proxy :: Proxy (CentralMoments k j)) xs
 
 --------------------------------------------------------------------------------
 -- Curvature and all

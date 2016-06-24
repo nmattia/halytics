@@ -7,6 +7,7 @@
 
 import           Control.Lens
 import           Control.Monad              (foldM, replicateM_, unless, void)
+import           Data.Bool                  (bool)
 import           Data.Proxy
 import           Halytics.Metric
 import           Halytics.Metric.Statistics
@@ -106,7 +107,7 @@ sla = do
     ms <- foldM (\mo _ -> notify mo <$> performARequest) m0 [1.. 1000]
     ms^._1 & (putStrLn . result)
     ms^._4._2 & (putStrLn . result)
-    ms^._5 & (putStrLn . (\ok -> if ok then "Passed!" else "Failed :(") . result)
+    ms^._5 & (putStrLn . bool "Failed :(" "Passed!" . result)
   where
     m0 = generate&_5 %<~ MySLA 100.0 :: Monitor Benchmarker
 

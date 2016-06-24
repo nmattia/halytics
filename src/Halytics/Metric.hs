@@ -104,7 +104,8 @@ data Every :: Nat -> * -> *
 -- TODO: Use pattern guards instead
 instance (Collect s, KnownNat n) => Collect (Every n s) where
   type S (Every n s) = (Integer, S s)
-  collect _ (1, s) x = (natVal (Proxy :: Proxy n), collect (Proxy :: Proxy s) s x)
+  collect _ (1, s) x = ( natVal (Proxy :: Proxy n)
+                       , collect (Proxy :: Proxy s) s x )
   collect _ (n, s) _ = (n-1, s)
 
 instance (KnownNat n, Default s) => Default (Every n s) where
@@ -138,9 +139,12 @@ instance Collect (PeriodOf n s) where
 instance Default (PeriodOf n s) where
   initial _ = []
 
-instance (KnownNat n, Resultable t r, Collect t, Default t) => Resultable (PeriodOf n t) [r] where
+instance (KnownNat n, Resultable t r, Collect t, Default t)
+         => Resultable (PeriodOf n t) [r] where
   r _ xs = r (Proxy :: Proxy t) <$> ss
     where
-      ss = foldl' (collect (Proxy :: Proxy t)) (initial (Proxy :: Proxy t)) <$> xss
+      ss = foldl' f x0 <$> xss
       xss = chunksOf n (reverse xs)
       n = fromInteger $ natVal (Proxy :: Proxy n) :: Int
+      f = collect (Proxy :: Proxy t)
+      x0 = initial (Proxy :: Proxy t)

@@ -90,7 +90,8 @@ class Collect t where
   -- | Collect a list of values for a specific monitor (batch collecting).
   collectManyFor :: Monitor ('L t) -> [Double] -> Monitor ('L t)
 
-  collect _ s x = case collectFor (Single s :: Monitor ('L t)) x of Single s' -> s'
+  collect _ s x =
+    case collectFor (Single s :: Monitor ('L t)) x of Single s' -> s'
   collectFor (Single s) x = Single $ collect (Proxy :: Proxy t) s x
   collectMany p = foldl' f
     where
