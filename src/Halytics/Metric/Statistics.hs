@@ -239,8 +239,10 @@ type Median = Percentile 50
 data WeightedAvg' :: Nat -> Nat -> *
 type WeightedAvg k q = StoredStats (WeightedAvg' k q)
 instance (KnownNat k, KnownNat q)
-         => FromStats (WeightedAvg' k q) Double where
-  func _ = Stats.weightedAvg k q
+         => FromStats (WeightedAvg' k q) (Maybe Double) where
+         -- Here we return a 'Maybe' because 'weightedAvg' throws an exception
+         -- on an empty vector
+  func _ v = if V.null v then Nothing else Just $ Stats.weightedAvg k q v
     where
       k  = fromInteger $ natVal (Proxy :: Proxy k)
       q  = fromInteger $ natVal (Proxy :: Proxy q)
@@ -251,6 +253,6 @@ instance (KnownNat k, KnownNat q) => Resultable (WeightedAvg k q) String where
       str 50 100 = "Median: " ++ show res
       str k 100 = show k ++ "th percentile: " ++ show res
       str k q = "Quantile " ++ show k ++ "/" ++ show q ++ ": " ++ show res
-      res = r (Proxy :: Proxy (WeightedAvg k q)) xs :: Double
+      res = r (Proxy :: Proxy (WeightedAvg k q)) xs :: Maybe Double
 
 -- TODO: Add functions that take a 'ContParam'

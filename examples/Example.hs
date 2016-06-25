@@ -55,9 +55,9 @@ type SomeMetrics =
 stats :: Int -> String -> IO ()
 stats n url = do
     m <- monitor n url
-    m^._1&result & (\(med :: Double) -> putStrLn $ "Median: " ++ show med)
-    m^._2&result & (\(p95 :: Double) -> putStrLn $ "P95: " ++ show p95)
-    m^._3&result & (\(p99 :: Double) -> putStrLn $ "P99: " ++ show p99)
+    m^._1&result & (\(med :: Maybe Double) -> putStrLn $ "Median: " ++ show med)
+    m^._2&result & (\(p95 :: Maybe Double) -> putStrLn $ "P95: " ++ show p95)
+    m^._3&result & (\(p99 :: Maybe Double) -> putStrLn $ "P99: " ++ show p99)
     m^._4&result & (\(mx :: Maybe Double) -> putStrLn $ "Max: " ++ show mx)
 
 

@@ -8,7 +8,7 @@ import Halytics.Monitor
 import Halytics.Metric
 import Halytics.Metric.Statistics
 
-{-|
+{-$
 
 First, some extensions:
 
@@ -30,11 +30,10 @@ Just 42.1
 >>> alice^._3&result :: String
 "Collected: (none)"
 
--- TODO: stats throw exception
--- >>> type BobMetrics = 'N '[ 'L Median, 'L (Percentile 95), 'L (Percentile 99)]
--- >>> let bob = generate :: Monitor BobMetrics
--- >>> bob^._2&result :: Double
--- 0.0
+>>> type BobMetrics = 'N '[ 'L Median, 'L (Percentile 95), 'L (Percentile 99)]
+>>> let bob = generate :: Monitor BobMetrics
+>>> bob^._2&result :: Maybe Double
+Nothing
 
 -}
 
