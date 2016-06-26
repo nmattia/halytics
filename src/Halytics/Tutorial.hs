@@ -35,6 +35,11 @@ Just 42.1
 >>> bob^._2&result :: Maybe Double
 Nothing
 
+>>> type CompanyMetrics = 'N '[ AliceMetrics, BobMetrics ]
+>>> let company = generate :: Monitor CompanyMetrics
+>>> company^._1._3&result :: String
+"Collected: (none)"
+
 -}
 
 
