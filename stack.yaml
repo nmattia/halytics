@@ -3,3 +3,6 @@ resolver: lts-6.4
 packages:
 - '.'
 - './examples'
+
+nix:
+    packages: [zlib]
