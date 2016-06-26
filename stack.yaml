@@ -5,4 +5,5 @@ packages:
 - './examples'
 
 nix:
+    enable: false
     packages: [zlib]
