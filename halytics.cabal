@@ -1,8 +1,8 @@
 name:                halytics
 version:             0.1.0.0
-synopsis:            Simple project template from stack
+synopsis:            Just-add-water benchmarks
 description:         Please see README.md
-homepage:            http://github.com/nmattia/halytics#readme
+homepage:            http://github.com/nmattia/halytics
 author:              Nicolas Mattia
 maintainer:          nicolas@nmattia.com
 copyright:           2010 Nicolas Mattia
