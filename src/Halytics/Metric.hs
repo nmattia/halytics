@@ -24,7 +24,7 @@ import Data.List
 import Data.List.Split           (chunksOf)
 import Data.Proxy
 import GHC.TypeLits
-import Halytics.Monitor.Internal
+import Halytics.Monitor.Tuple
 
 -- $setup
 -- >>> :set -XDataKinds
@@ -38,13 +38,13 @@ import Halytics.Monitor.Internal
 'All' will simply give back all the entries collected. This should mostly be
 used for testing.
 
->>> let monitor = generate :: Monitor ('L All)
->>> result (collectManyFor monitor [1.0,2.0,3.0]) :: [Double]
+>>> let monitor = generate :: Monitor All
+>>> result (notifyMany monitor [1.0,2.0,3.0]) :: [Double]
 [1.0,2.0,3.0]
 
 The following property should hold:
 
-prop> result (collectManyFor (generate :: Monitor ('L All)) xs) == xs
+prop> result (notifyMany (generate :: Monitor All) xs) == xs
 
 -}
 data All :: *
@@ -68,15 +68,15 @@ instance Resultable All String where
 collected so far, results in 'Nothing'. If any entry was collected, results
 in 'Just' the maximum.
 
->>> let monitor = generate :: Monitor ('L Max)
->>> result (collectManyFor monitor [1.0,2.0,3.0]) :: Maybe Double
+>>> let monitor = generate :: Monitor Max
+>>> result (notifyMany monitor [1.0,2.0,3.0]) :: Maybe Double
 Just 3.0
->>> result (collectManyFor monitor []) :: Maybe Double
+>>> result (notifyMany monitor []) :: Maybe Double
 Nothing
 
 The following property should hold:
 
-prop> result (collectManyFor (generate :: Monitor ('L Max)) xs) == maximumMay xs
+prop> result (notifyMany (generate :: Monitor Max) xs) == maximumMay xs
 
 -}
 data Max
@@ -103,15 +103,15 @@ instance Resultable Max String where
 collected so far, results in 'Nothing'. If any entry was collected, results
 in 'Just' the maximum.
 
->>> let monitor = generate :: Monitor ('L Min)
->>> result (collectManyFor monitor [1.0,2.0,3.0]) :: Maybe Double
+>>> let monitor = generate :: Monitor Min
+>>> result (notifyMany monitor [1.0,2.0,3.0]) :: Maybe Double
 Just 1.0
->>> result (collectManyFor monitor []) :: Maybe Double
+>>> result (notifyMany monitor []) :: Maybe Double
 Nothing
 
 The following property should hold:
 
-prop> result (collectManyFor (generate :: Monitor ('L Min)) xs) == minimumMay xs
+prop> result (notifyMany (generate :: Monitor Min) xs) == minimumMay xs
 
 -}
 data Min
@@ -140,8 +140,8 @@ instance Resultable Min String where
 'Every' will feed another metric every @n@th element collected. 'Every' will
 feed the metric the first, @n+1@ th, @2n+1@ th, ... collected elements.
 
->>> let monitor = generate :: Monitor ('L (All |^ Every 2))
->>> result (collectManyFor monitor [1.0,2.0,3.0,2.0,1.0]) :: [Double]
+>>> let monitor = generate :: Monitor (All |^ Every 2)
+>>> result (notifyMany monitor [1.0,2.0,3.0,2.0,1.0]) :: [Double]
 [1.0,3.0,1.0]
 
 -}
@@ -164,8 +164,8 @@ instance (Resultable t r) => Resultable (Every n t) r where
 
 'Last' will feed another metric the last @n@ elements collected.
 
->>> let monitor = generate :: Monitor ('L (All |^ Last 2))
->>> result (collectManyFor monitor [1.0,2.0,3.0,2.0,1.0]) :: [Double]
+>>> let monitor = generate :: Monitor (All |^ Last 2)
+>>> result (notifyMany monitor [1.0,2.0,3.0,2.0,1.0]) :: [Double]
 [2.0,1.0]
 
 -}
@@ -192,8 +192,8 @@ instance (Default t, Collect t, Resultable t r) => Resultable (Last n t) r where
 'PeriodOf' will feed another metric with chunks of @n@ elements. 'result'
 returns the list of the results (one for each chunk).
 
->>> let monitor = generate :: Monitor ('L (All |^ PeriodOf 2))
->>> result (collectManyFor monitor [1.0,2.0,3.0,2.0,1.0]) :: [[Double]]
+>>> let monitor = generate :: Monitor (All |^ PeriodOf 2)
+>>> result (notifyMany monitor [1.0,2.0,3.0,2.0,1.0]) :: [[Double]]
 [[1.0,2.0],[3.0,2.0],[1.0]]
 
 -}

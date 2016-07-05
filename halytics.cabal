@@ -20,13 +20,15 @@ library
                        safe,
                        split,
                        statistics,
+                       template-haskell,
                        vector
   exposed-modules:
                        Halytics.Metric
                        Halytics.Metric.Statistics
                        Halytics.Monitor
-                       Halytics.Monitor.Internal
+                       Halytics.Monitor.Tuple
                        Halytics.Monitor.Lens
+                       Halytics.Monitor.Lens.TH
                        Halytics.Time
                        Halytics.Tutorial
   ghc-options:
