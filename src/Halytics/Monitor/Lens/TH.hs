@@ -37,16 +37,19 @@ field n = ConT $ mkName $ "Field" ++ show n
 _n :: Int -> Int -> Dec
 _n nField tupSize = FunD (mkName $ "_" ++ show nField) [Clause pats body []]
   where
-    pats = [VarP $ mkName "k", ConP (mkName "Go")  [TupP $ VarP . mkName <$> varNames]  ]
+    pats = [ VarP $ mkName "k"
+           , ConP (mkName "Go")  [TupP $ VarP . mkName <$> varNames]  ]
     varNames = map (\n -> "m" ++ show n) [1 .. tupSize]
     body = NormalB $ AppE (AppE fmap_ (insert nField tupSize)) (funct nField)
 
 
 -- sub = (Go (m1', m2))
--- sub_ = AppE (ConE (mkName "Go")) (TupE [VarE $ mkName "a'", VarE $ mkName "b"])
+-- sub_ = AppE (ConE (mkName "Go"))
+--             (TupE [VarE $ mkName "a'", VarE $ mkName "b"])
 -- >
 sub :: Int -> Int -> Exp
-sub nField tupSize = AppE (ConE (mkName "Go")) (TupE $ (VarE . mkName) <$> varNames')
+sub nField tupSize = AppE (ConE (mkName "Go"))
+                          (TupE $ (VarE . mkName) <$> varNames')
   where
     varNames' = varNames & ix (nField -1) %~ (++ "'")
     varNames = map (\n -> "m" ++ show n) [1 .. tupSize]
@@ -54,7 +57,8 @@ sub nField tupSize = AppE (ConE (mkName "Go")) (TupE $ (VarE . mkName) <$> varNa
 -- > (\(Go m_nField) -> Go (m1, m2, ..., m_nField', ..., m_tupSize))
 insert :: Int -> Int -> Exp
 insert nField tupSize =
-  LamE [ConP (mkName "Go") [VarP $ mkName $ "m" ++ show nField ++ "'"]] (sub nField tupSize)
+  LamE [ConP (mkName "Go") [VarP $ mkName $ "m" ++ show nField ++ "'"]]
+       (sub nField tupSize)
 
 -- > k (Go m_nField)
 funct :: Int -> Exp
@@ -80,6 +84,9 @@ fmap_ = VarE $ mkName "fmap"
 --         inst = FunD (mkName "_1") [Clause pats body []]
 --         body = NormalB $ AppE (AppE fmap_ lamb_) funct_
 --         lamb_ = LamE [ConP (mkName "Go") [VarP $ mkName "a'"]] sub_
---         sub_ = AppE (ConE (mkName "Go")) (TupE [VarE $ mkName "a'", VarE $ mkName "b"])
---         funct_ = AppE (VarE $ mkName "k") $ AppE (ConE $ mkName "Go") $ VarE (mkName "a")
---         pats = [ VarP $ mkName "k", ConP (mkName "Go") [TupP [VarP $ mkName "a", VarP $ mkName "b"]]]
+--         sub_ = AppE (ConE (mkName "Go"))
+--                     (TupE [VarE $ mkName "a'", VarE $ mkName "b"])
+--         funct_ = AppE (VarE $ mkName "k")
+--                     $ AppE (ConE $ mkName "Go") $ VarE (mkName "a")
+--         pats = [ VarP $ mkName "k", ConP (mkName "Go")
+--                [TupP [VarP $ mkName "a", VarP $ mkName "b"]]]

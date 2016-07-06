@@ -11,6 +11,7 @@ import Halytics.Metric.Statistics
 {-$
 
 First, some extensions:
+>>> :set -XDataKinds
 
 >>> let maxMonitor = notifyMany (generate :: Monitor Max) [1,3,42,-5]
 >>> result maxMonitor :: Maybe Double

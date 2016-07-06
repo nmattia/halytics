@@ -62,7 +62,8 @@ initializeWith s val = over s (`fromPlaceholder` val)
                 -- (Monitor (t1', t2, t3, t4, t5, t6))
                 -- (Monitor t1)
                 -- (Monitor t1') where
-  -- _1 k (Go (a, b, c, d, e, f)) = k (Go a) <&> (\(Go a') -> Go (a', b, c, d, e, f))
+  -- _1 k (Go (a, b, c, d, e, f)) =
+  -- k (Go a) <&> (\(Go a') -> Go (a', b, c, d, e, f))
 
 -- instance Field2 (Monitor (t1, t2))
                 -- (Monitor (t1, t2'))
