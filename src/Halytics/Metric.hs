@@ -61,7 +61,7 @@ instance Resultable All [Double] where
 
 instance Resultable All String where
   r _ [] = "Collected: (none)"
-  r _ xs = "Collected: " ++ intercalate ", " (show <$> xs)
+  r _ xs = "Collected: " ++ intercalate ", " (show <$> reverse xs)
 
 {-|
 'Max' will result in the largest entry collected so far. If no entry was
