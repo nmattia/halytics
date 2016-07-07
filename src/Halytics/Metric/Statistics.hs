@@ -12,7 +12,7 @@ module Halytics.Metric.Statistics where
 
 import           Data.Proxy
 import           GHC.TypeLits
-import           Halytics.Monitor.Internal
+import           Halytics.Monitor.Tuple
 
 import qualified Data.Vector.Unboxed       as V
 import qualified Statistics.Quantile       as Stats

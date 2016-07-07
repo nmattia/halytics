@@ -11,10 +11,9 @@ import Halytics.Metric.Statistics
 {-$
 
 First, some extensions:
-
 >>> :set -XDataKinds
 
->>> let maxMonitor = notifyMany (generate :: Monitor ('L Max)) [1,3,42,-5]
+>>> let maxMonitor = notifyMany (generate :: Monitor Max) [1,3,42,-5]
 >>> result maxMonitor :: Maybe Double
 Just 42.0
 
@@ -22,7 +21,7 @@ Just 42.0
 >>> result maxMonitor' :: Maybe Double
 Just 42.1
 
->>> type AliceMetrics = 'N '[ 'L Min, 'L Max, 'L All]
+>>> type AliceMetrics = (Min, Max, All)
 >>> let alice = generate :: Monitor AliceMetrics
 >>> alice^._1&result :: String
 "No minimum found"
@@ -30,12 +29,12 @@ Just 42.1
 >>> alice^._3&result :: String
 "Collected: (none)"
 
->>> type BobMetrics = 'N '[ 'L Median, 'L (Percentile 95), 'L (Percentile 99)]
+>>> type BobMetrics = (Median, Percentile 95, Percentile 99)
 >>> let bob = generate :: Monitor BobMetrics
 >>> bob^._2&result :: Maybe Double
 Nothing
 
->>> type CompanyMetrics = 'N '[ AliceMetrics, BobMetrics ]
+>>> type CompanyMetrics = (AliceMetrics, BobMetrics)
 >>> let company = generate :: Monitor CompanyMetrics
 >>> company^._1._3&result :: String
 "Collected: (none)"

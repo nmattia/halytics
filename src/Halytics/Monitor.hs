@@ -1,11 +1,18 @@
 {-# LANGUAGE ExplicitNamespaces #-}
 
-module Halytics.Monitor (module X) where
+module Halytics.Monitor
+  ( I.Collect (..)
+  , I.Default (..)
+  , I.Initialize (..)
+  , I.Monitor
+  , I.Resultable (..)
+  , type (I.|^)
+  , I.fromPlaceholder
+  , I.generate
+  , I.monitorWith
+  , I.result
+  , (L.%<~)) where
 
-import Halytics.Monitor.Internal as X (Collect (..), Default (..),
-                                       Initialize (..), Monitor,
-                                       Resultable (..), Tree (..), type (|^),
-                                       collectMany, collectManyFor,
-                                       fromPlaceholder, generate, monitorWith,
-                                       notify, notifyMany, result)
-import Halytics.Monitor.Lens     as X
+
+import qualified Halytics.Monitor.Tuple as I
+import qualified Halytics.Monitor.Lens as L

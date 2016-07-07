@@ -2,7 +2,7 @@ resolver: lts-6.4
 
 packages:
 - '.'
-- './examples'
+#- './examples'
 
 nix:
     enable: false
