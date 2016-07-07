@@ -68,7 +68,8 @@ result :: Resultable t r => Monitor t -> r
 
 'Resultable' is a type class defining a relation between a type of metric (@t@)
 and a type of result it can produce (@r@). When we called 'result' above we
-used the factor that there is an instance such that:
+used the instance
+
 > instance Resultable Max (Maybe Double) where ...
 
 We could also have used:
@@ -77,8 +78,8 @@ We could also have used:
 "Max: 3.0"
 
 which makes it convenient to print out results. Finally, using our initial
-monitor (which doesn't hold any value) we understand why 'result' uses a 'Maybe
-Double' for 'Max':
+monitor (which doesn't hold any value) we understand why 'result' uses 'Maybe'
+'Double' instead of just 'Double' for 'Max':
 
 >>> result firstMonitor :: String
 "No maximum found"
