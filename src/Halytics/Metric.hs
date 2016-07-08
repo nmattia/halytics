@@ -99,9 +99,9 @@ instance Resultable Max String where
       res = r (Proxy :: Proxy Max) xs :: Maybe Double
 
 {-|
-'Min' will result in the largest entry collected so far. If no entry was
+'Min' will result in the smallest entry collected so far. If no entry was
 collected so far, results in 'Nothing'. If any entry was collected, results
-in 'Just' the maximum.
+in 'Just' the minimum.
 
 >>> let monitor = generate :: Monitor Min
 >>> result (notifyMany monitor [1.0,2.0,3.0]) :: Maybe Double
