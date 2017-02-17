@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Halytics.Tutorial</title><link href="ocean.css" rel="stylesheet" type="text/css" title="Ocean" /><script src="haddock-util.js" type="text/javascript"></script><script type="text/javascript">//<![CDATA[
+window.onload = function () {pageLoad();setSynopsis("mini_Halytics-Tutorial.html");};
+//]]>
+</script></head><body><div id="package-header"><ul class="links" id="page-menu"><li><a href="index.html">Contents</a></li><li><a href="doc-index.html">Index</a></li></ul><p class="caption">halytics-0.1.0.0: Just-add-water benchmarks</p></div><div id="content"><div id="module-header"><table class="info"><tr><th>Safe Haskell</th><td>None</td></tr><tr><th>Language</th><td>Haskell2010</td></tr></table><p class="caption">Halytics.Tutorial</p></div><div id="synopsis"><p id="control.syn" class="caption expander" onclick="toggleSection('syn')">Synopsis</p><ul id="section.syn" class="hide" onclick="toggleSection('syn')"></ul></div><div id="interface"><h1>Documentation</h1><div class="doc"><p>First, some extensions:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>:set -XDataKinds
+</code></strong></pre><h2>The basics</h2><p>The most important type in Halytics is a <code><a href="Halytics-Monitor-Tuple.html#t:Monitor">Monitor</a></code>. It stores the values you
+give it and, when you ask for it, gives you a result. To get a <code><a href="Halytics-Monitor-Tuple.html#t:Monitor">Monitor</a></code> you
+usually call <code><a href="Halytics-Monitor-Tuple.html#v:generate">generate</a></code>, which will take care of setting up everything for you.</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>:t generate
+</code></strong>generate :: (Default t, Collect t) =&gt; Monitor t
+</pre><p>Let's leave the constraint aside for now. What you need to do is simply tell
+<code><a href="Halytics-Monitor-Tuple.html#v:generate">generate</a></code> what <em>type</em> of <code><a href="Halytics-Monitor-Tuple.html#t:Monitor">Monitor</a></code> you want and it will build one for you.
+Let's start with a simple type, <code><a href="Halytics-Metric.html#t:Max">Max</a></code>, that can be found in <code><a href="Halytics.html#v:Metric">Metric</a></code>
+(<code><a href="Halytics-Metric.html#t:Max">Max</a></code> works within the constraint <code>(Default t, Collect t)</code>):</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>let firstMonitor = generate :: Monitor Max
+</code></strong></pre><p>There are two functions important to the use of a <code><a href="Halytics-Monitor-Tuple.html#t:Monitor">Monitor</a></code>:</p><ul><li><code><a href="Halytics-Monitor-Tuple.html#v:notify">notify</a></code>: notify a <code><a href="Halytics-Monitor-Tuple.html#t:Monitor">Monitor</a></code> that a new value is available for collection.</li><li><code><a href="Halytics-Monitor-Tuple.html#v:result">result</a></code>: computes a type of result using the values collected.</li></ul><p>Let's have a look at <code><a href="Halytics-Monitor-Tuple.html#v:notify">notify</a></code> first:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>:t notify
+</code></strong>notify :: Collect t =&gt; Monitor t -&gt; Double -&gt; Monitor t
+</pre><p>As expected, <code><a href="Halytics-Monitor-Tuple.html#v:notify">notify</a></code> takes a <code><a href="Halytics-Monitor-Tuple.html#t:Monitor">Monitor</a></code>, a new value, and returns a <code><a href="Halytics-Monitor-Tuple.html#t:Monitor">Monitor</a></code>
+of the same type. The internal state of the <code><a href="Halytics-Monitor-Tuple.html#t:Monitor">Monitor</a></code> was updated to account
+for the new value. In the case of <code>firstMonitor</code>, <code>t = Max</code>. Let's add some
+values to our monitor:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>let firstMonitor' = (`notify` 3) . (`notify` 1) $ firstMonitor
+</code></strong></pre><p>Here we successively notified the monitor of the values <code>1</code> and <code>3</code>. Now, let's
+use <code><a href="Halytics-Monitor-Tuple.html#v:result">result</a></code>, mentioned above:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>result firstMonitor' :: Maybe Double
+</code></strong>Just 3.0
+</pre><p>Well, that's good. As expected, the maximum of <code>1</code> and <code>3</code> is... <code>3</code>. What
+about adding a value?</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>result $ notify firstMonitor' 42 :: Maybe Double
+</code></strong>Just 42.0
+</pre><p>Now let's have a quick look at the signature of <code><a href="Halytics-Monitor-Tuple.html#v:result">result</a></code>:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>:t result
+</code></strong>result :: Resultable t r =&gt; Monitor t -&gt; r
+</pre><p><code><a href="Halytics-Monitor-Tuple.html#t:Resultable">Resultable</a></code> is a type class defining a relation between a type of metric (<code>t</code>)
+and a type of result it can produce (<code>r</code>). When we called <code><a href="Halytics-Monitor-Tuple.html#v:result">result</a></code> above we
+used the instance</p><pre>instance Resultable Max (Maybe Double) where ...</pre><p>We could also have used:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>result firstMonitor' :: String
+</code></strong>&quot;Max: 3.0&quot;
+</pre><p>which makes it convenient to print out results. Finally, using our initial
+monitor (which doesn't hold any value) we understand why <code><a href="Halytics-Monitor-Tuple.html#v:result">result</a></code> uses <code><a href="../base-4.8.2.0/Data-Maybe.html#t:Maybe">Maybe</a></code>
+<code><a href="../base-4.8.2.0/Prelude.html#t:Double">Double</a></code> instead of just <code><a href="../base-4.8.2.0/Prelude.html#t:Double">Double</a></code> for <code><a href="Halytics-Metric.html#t:Max">Max</a></code>:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>result firstMonitor :: String
+</code></strong>&quot;No maximum found&quot;
+</pre><p>The maximum is not defined when there are no values.</p><h2>Bundling metrics together</h2><p>Often you will want to record several metrics over the same set of data. A
+<code><a href="Halytics-Monitor-Tuple.html#t:Monitor">Monitor</a></code> doesn't limit you to a single <code>Metric</code>. For instance, Alice wants to
+record the minimum, the maximum, and the list of all values that have been
+collected.</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>type AliceMetrics = (Min, Max, All)
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>let alice = generate :: Monitor AliceMetrics
+</code></strong></pre><p>We know <code><a href="Halytics-Metric.html#t:Max">Max</a></code>, and we can infer what <code><a href="Halytics-Metric.html#t:Min">Min</a></code> does. <code><a href="Halytics-Metric.html#t:All">All</a></code> is different in the
+sense that it will keep track of <em>all</em> the values that have been collected so
+far. Now we will need to access the metrics. For this, some lenses are
+provided:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>alice^._1&amp;result :: String
+</code></strong>&quot;No minimum found&quot;
+</pre><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>alice^._3&amp;result :: String
+</code></strong>&quot;Collected: (none)&quot;
+</pre><p>Let's see what we're accessing here:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>:t alice^._1
+</code></strong>alice^._1 :: Monitor Min
+</pre><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>:t alice^._2
+</code></strong>alice^._2 :: Monitor Max
+</pre><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>:t alice^._3
+</code></strong>alice^._3 :: Monitor All
+</pre><p>Great! Using instances of lens' <code><a href="../lens-4.13/Control-Lens-Tuple.html#t:Field1">Field1</a></code>, <code><a href="../lens-4.13/Control-Lens-Tuple.html#t:Field2">Field2</a></code>, ... we can jump inside a
+<code><a href="Halytics-Monitor-Tuple.html#t:Monitor">Monitor</a></code> <code>(a, b, ...)</code> and use each individual <code><a href="Halytics-Monitor-Tuple.html#t:Monitor">Monitor</a></code> <code>a, b, c...</code>. Still,
+you will only need to notify one monitor:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>let alice' = (`notify` 9) . (`notify` 3) $ alice
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>alice'^._1&amp;result :: String
+</code></strong>&quot;Min: 3.0&quot;
+<code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>alice'^._3&amp;result :: String
+</code></strong>&quot;Collected: 3.0, 9.0&quot;
+</pre><p>Enters Bob, who wants to record the median, <code>95th</code> and <code>99th</code> percentiles:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>type BobMetrics = (Median, Percentile 95, Percentile 99)
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>let bob = generate :: Monitor BobMetrics
+</code></strong></pre><p><code><a href="Halytics-Metric-Statistics.html#t:Median">Median</a></code> and <code><a href="Halytics-Metric-Statistics.html#t:Percentile">Percentile</a></code> are defined in <code><a href="Halytics-Metric.html#v:Statistics">Statistics</a></code>.
+<code><a href="Halytics-Metric-Statistics.html#t:Percentile">Percentile</a></code> allows you to define the percentile you want to read at compile
+time:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>:kind Percentile
+</code></strong>Percentile :: GHC.TypeLits.Nat -&gt; *
+</pre><p>(The median is simply defined as <code>type Median = Percentile 50</code>)</p><p>Now comes Bob and Alice's boss, who wants to use all those metrics together:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>type CompanyMetrics = (AliceMetrics, BobMetrics)
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>let company = generate :: Monitor CompanyMetrics
+</code></strong><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>let company' = notifyMany company [1, 3.43, -5, 103.0]
+</code></strong></pre><p>And we can still use the individual metrics by combining the lenses:</p><pre class="screen"><code class="prompt">&gt;&gt;&gt; </code><strong class="userinput"><code>company'^._1._3&amp;result :: String
+</code></strong>&quot;Collected: 1.0, 3.43, -5.0, 103.0&quot;
+</pre><h2>Combinators</h2><p>TODO</p><h2>The type classes</h2><p>TODO</p></div></div></div><div id="footer"><p>Produced by <a href="http://www.haskell.org/haddock/">Haddock</a> version 2.16.1</p></div></body></html>
